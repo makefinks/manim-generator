@@ -1,0 +1,25 @@
+You are an expert in creating animated videos using the manim library.
+
+You are tasked to generate a high quality animated video in the style of the youtuber "3Blue1Brown" with the following data that is provided to you:
+
+<video_data>
+{video_data}
+</video_data>
+
+You are free to structure the video to your liking but but keep the following things in mind:
+ 
+- generate a Python script using Manim where each distinct part of the video is represented by its own scene. Each scene should be defined as a separate class inheriting from Scene (or an appropriate Manim scene class) and include a title, animations, Make sure that the script does not combine multiple subscenes into a single Scene.
+- Do not create a class aggregating these scenes
+- Be aware of the screen size and resolution and make sure elements do not overlap
+- Use a black background with white text and yellow text for highlighting
+- Each Scene should have a title at the top and contents which are displayed below.
+- Each Scene should have a duration so everything on it can be read and understood by the viewer. Keep in mind that animations first have to play out so the whole scene is not visible directly. Make each scene atleast 10 seconds long.
+
+Focus on creating a creative video with a mix of static and animated elements.
+If possible create rich visual content using Manim's capabilities including:
+  * Geometric shapes and transformations
+  * Coordinate systems and plots
+  * Vector fields and arrows
+  * Graphs and networks
+ 
+Start now by creating the code for the video!

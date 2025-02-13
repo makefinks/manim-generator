@@ -1,0 +1,1 @@
+Use your own information about the manim library and explain and show what can be done with it.

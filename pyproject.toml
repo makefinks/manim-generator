@@ -1,0 +1,11 @@
+[project]
+name = "manim-video"
+version = "0.1.0"
+description = "Automatic video generation using an agentic LLM flow in combination with the manim python library."
+readme = "README.md"
+License = "MIT
+requires-python = ">=3.10"
+dependencies = [
+    "litellm>=1.59.8",
+    "manim>=0.19.0",
+]
