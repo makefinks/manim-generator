@@ -96,6 +96,7 @@ Contributions are welcome!
 ## Observations:
 
 ### LLMs
+- Claude 3.7 Sonnet creates unique and stable scenes, allocating extra thinking budget increases the complexity of the visualisations but introduces visual errors or invalid use of the manim api
 - o3-mini seems to be the most reliable coder but does not create the most impressive scenes - more testing is neeeded (also no image inputs yet)
 - Claude 3.5 Sonnet V2 performs very well as the reviewer and coder - to no ones suprise ;)
 - Deepseek R1 sometimes creates more impressive compositions but code often has syntax errors

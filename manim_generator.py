@@ -18,8 +18,8 @@ from utils.file import load_video_data
 
 # Global configuration
 CONFIG = {
-    "manim_model": "openrouter/openai/o3-mini",
-    "review_model": "openrouter/openai/o3-mini",
+    "manim_model": "openrouter/anthropic/claude-3.7-sonnet",
+    "review_model": "openrouter/anthropic/claude-3.7-sonnet",
     "review_cycles": 3,
     "output_dir": f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
     "manim_logs": False,
@@ -109,7 +109,11 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
 
         success, last_frames, combined_logs = run_manim_multiscene(current_code, console, CONFIG["output_dir"])
         console.print(f"Success: {success}\n{len(last_frames)} of {len(extract_scene_class_names(current_code))} scenes rendered successfully")
-        working_code = current_code if success else None
+        
+        # update working_code if this iteration was successful
+        if success:
+            working_code = current_code
+        
         if CONFIG["manim_logs"]:
             console.print(f"Output:\n{combined_logs}")
 
