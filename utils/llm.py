@@ -37,7 +37,7 @@ def get_completion_with_retry(
                 model=model,
                 messages=messages,
                 temperature=temperature,
-                stream=False
+                stream=False                
             )
             response_content = response["choices"][0]["message"]["content"]
             return response_content

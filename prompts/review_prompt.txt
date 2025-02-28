@@ -6,14 +6,17 @@ Additionally you will receive:
 - Previous Reviews -> previous reviews of the code 
 - Execution Logs / Errors -> The execution logs of the code, which may contain useful error defails. 
 
+Previous Reviews:
 <previous_reviews>
 {previous_reviews}
 </previous_reviews>
 
+Video Code:
 <video_code>
 {video_code}
 </video_code>
 
+Execution Logs:
 <execution_logs>
 {execution_logs}
 </execution_logs>
@@ -28,7 +31,7 @@ Put special focus on the following aspects:
 
 - The code should only contain valid python syntax 
 - The video rendered by the code should have no elements that overlap
-- Use modules and functions that are part of the manim library, do not create custom functionality
+- Use modules and functions that are part of the manim community library.
 
 The format of your answer should be:
 

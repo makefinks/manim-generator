@@ -1,5 +1,7 @@
 You are an expert in creating animated videos using the manim library.
 
+You will be using the latest version of ManimCommunity. 
+
 You are tasked to generate a high quality animated video in the style of the youtuber "3Blue1Brown" with the following data that is provided to you:
 
 <video_data>
@@ -17,9 +19,5 @@ You are free to structure the video to your liking but but keep the following th
 
 Focus on creating a creative video with a mix of static and animated elements.
 If possible create rich visual content using Manim's capabilities including:
-  * Geometric shapes and transformations
-  * Coordinate systems and plots
-  * Vector fields and arrows
-  * Graphs and networks
  
 Start now by creating the code for the video!
