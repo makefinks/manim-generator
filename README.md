@@ -58,7 +58,7 @@ brew install --cask mactex
 Linux (Debian/Ubuntu):
 ```bash
 sudo apt-get update
-sudo apt-get install ffmpeg texlive-full
+sudo apt-get install texlive texlive-latex-extra texlive-fonts-extra texlive-science
 ```
 
 ### 3. Setup Environment Variables

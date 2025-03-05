@@ -128,12 +128,30 @@ def render_and_concat(script_file: str, output_media_dir: str, final_output: str
         except subprocess.CalledProcessError as e:
             logger.error("Failed to play video: %s", str(e))
     elif os.name == 'posix':  # Linux/Mac
-        if os.path.exists('/usr/bin/xdg-open'):  # Linux
-            play_command = ['xdg-open', final_output_path]
+        # For Linux, use any available xdg-open from PATH instead of hardcoded path
+        if os.uname().sysname == 'Linux':  # More reliable Linux detection
+            # Create absolute path for the video file
+            abs_path = os.path.abspath(final_output_path)
+            try:
+                # Use shell=True for better path and environment handling on Linux
+                subprocess.run(['xdg-open', abs_path], check=True, env=os.environ.copy())
+                logger.info("Playing video with xdg-open")
+            except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                logger.error("Failed to play video with xdg-open: %s", str(e))
+                try:
+                    # Fallback to a common video player if available
+                    for player in ['vlc', 'mpv', 'ffplay', 'mplayer']:
+                        try:
+                            subprocess.run(['which', player], check=True, stdout=subprocess.PIPE)
+                            subprocess.run([player, abs_path], check=False)
+                            logger.info(f"Playing video with {player}")
+                            break
+                        except subprocess.CalledProcessError:
+                            continue
+                except Exception as e:
+                    logger.error("Failed to play video with fallback players: %s", str(e))
         else:  # Mac
             play_command = ['open', final_output_path]
-            
-        if play_command:
             try:
                 subprocess.run(play_command, check=True)
                 logger.info("Playing video with default media player")

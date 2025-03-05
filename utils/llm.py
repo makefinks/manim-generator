@@ -10,7 +10,7 @@ from rich.console import Console
 def get_completion_with_retry(
     model: str,
     messages: list[dict],
-    temperature: int,
+    temperature: float,
     console: Console,
     max_retries: int = 5
 ) -> str:
@@ -65,7 +65,7 @@ def get_completion_with_retry(
 def get_streaming_completion_with_retry(
     model: str,
     messages: list[dict],
-    temperature: int,
+    temperature: float,
     console: Console,
     max_retries: int = 5
 ) -> Generator[tuple[str, str], None, None]:

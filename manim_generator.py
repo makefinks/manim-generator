@@ -4,6 +4,7 @@ import os
 from rich.console import Console
 from rich.syntax import Syntax
 from rich.prompt import Confirm
+from rich.panel import Panel
 from litellm import supports_vision
 
 from utils.code import (
@@ -12,7 +13,7 @@ from utils.code import (
     parse_code_block,
     save_code_to_file,
 )
-from utils.console import get_response_with_status
+from utils.console import get_response_with_status, print_code_with_syntax
 from utils.text import convert_frames_to_message_format, format_previous_reviews, format_prompt
 from utils.video import render_and_concat
 from utils.file import load_video_data
@@ -20,9 +21,9 @@ from utils.file import load_video_data
 
 # Default configuration
 DEFAULT_CONFIG = {
-    "manim_model": "openrouter/anthropic/claude-3.7-sonnet",
-    "review_model": "openrouter/anthropic/claude-3.7-sonnet",
-    "review_cycles": 3,
+    "manim_model": "openrouter/anthropic/claude-3-5-haiku",
+    "review_model": "openrouter/anthropic/claude-3-5-haiku",
+    "review_cycles": 1,
     "output_dir": f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
     "manim_logs": False,
     "streaming": False,
@@ -86,16 +87,15 @@ def generate_initial_code(video_data: str, config: dict) -> tuple[str, list]:
             - The generated Manim code as a string
             - The conversation history with the model as a list of messages
     """
-    console.rule("Initial Manim Code Generation")
+    console.rule("[bold green]Initial Manim Code Generation", style="green")
     main_messages = [{
         "role": "system",
         "content": format_prompt("init_prompt", {"video_data": video_data}),
     }]
-    response = get_response_with_status(config["manim_model"], main_messages, 0.7, config["streaming"], "[bold green] Generating initial code", console)
+    response = get_response_with_status(config["manim_model"], main_messages, 0.7, config["streaming"], "[bold green]Generating initial code", console)
     console.clear()
-    console.print("[bold green]Generated initial Manim code[/bold green]")
     code = parse_code_block(response)
-    console.print(Syntax(code, "python", theme="monokai", line_numbers=True))
+    print_code_with_syntax(code, console, "Generated Initial Manim Code")
     return code, main_messages
 
 
@@ -120,7 +120,7 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
     vision_enabled = supports_vision(model=config["review_model"])
 
     for cycle in range(config["review_cycles"]):
-        console.rule(f"Review Cycle {cycle + 1}", style="bold blue")
+        console.rule(f"[bold blue]Review Cycle {cycle + 1}", style="blue")
         review_content = format_prompt(
             "review_prompt",
             {
@@ -135,9 +135,9 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
                 {"type": "text", "text": review_content},
             ] + (convert_frames_to_message_format(last_frames) if last_frames and vision_enabled else [])
         }]
-        review = get_response_with_status(config["review_model"], review_message, 0.7, config["streaming"], status="[bold blue] Generating Review", console=console)
+        review = get_response_with_status(config["review_model"], review_message, 0.7, config["streaming"], status="[bold blue]Generating Review", console=console)
         previous_reviews.append(review)
-        console.print(f"[yellow]Received review feedback:[/yellow]\n{review}")
+        console.print(Panel(review, title="[yellow]Review Feedback[/yellow]", border_style="yellow"))
 
         # Append feedback for code revision
         main_messages.append({
@@ -145,23 +145,26 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
             "content": f"Here is some feedback on your code. \n\n<review{review}</review>\n\nPlease implement the suggestions and respond with the whole script."
         })
 
-        console.rule(f"Generating Manim Code Revision {cycle + 1}")
-        revised_response = get_response_with_status(config["manim_model"], main_messages, 0.7, config["streaming"], "[bold green] generating code revision", console)
+        console.rule(f"[bold green]Generating Code Revision {cycle + 1}", style="green")
+        revised_response = get_response_with_status(config["manim_model"], main_messages, 0.7, config["streaming"], "[bold green]Generating code revision", console)
         main_messages.append({"role": "assistant", "content": revised_response})
         current_code = parse_code_block(revised_response)
-        console.print(f"[green]Revised code generated for cycle {cycle + 1}[/green]")
-        console.print(Syntax(current_code, "python", theme="monokai", line_numbers=True))
-        console.rule(f"Running manim script - Revision {cycle + 1}")
-
+        print_code_with_syntax(current_code, console, f"Revised Code - Cycle {cycle + 1}")
+        
+        console.rule(f"[bold cyan]Running Manim Script - Revision {cycle + 1}", style="cyan")
         success, last_frames, combined_logs = run_manim_multiscene(current_code, console, config["output_dir"])
-        console.print(f"Success: {success}\n{len(last_frames)} of {len(extract_scene_class_names(current_code))} scenes rendered successfully")
+        
+        status_color = "green" if success else "red"
+        scenes_rendered = f"{len(last_frames)} of {len(extract_scene_class_names(current_code))}"
+        console.print(f"[bold {status_color}]Execution Status: {'Success' if success else 'Failed'}[/bold {status_color}]")
+        console.print(f"[bold {status_color}]Scenes Rendered: {scenes_rendered}[/bold {status_color}]")
         
         # update working_code if this iteration was successful
         if success:
             working_code = current_code
         
         if config["manim_logs"]:
-            console.print(f"Output:\n{combined_logs}")
+            console.print(Panel(combined_logs, title="[cyan]Execution Logs[/cyan]", border_style="cyan"))
 
     return current_code, working_code, combined_logs
 
@@ -177,15 +180,21 @@ def main():
     
     current_code, main_messages = generate_initial_code(video_data, config)
     
-    console.rule("Running initial manim script")
+    console.rule("[bold cyan]Running Initial Manim Script", style="cyan")
     success, last_frames, combined_logs = run_manim_multiscene(current_code, console, config["output_dir"])
-    console.print(f"Success: {success}\n{len(last_frames)} of {len(extract_scene_class_names(current_code))} scenes rendered successfully")
+    
+    status_color = "green" if success else "red"
+    scenes_rendered = f"{len(last_frames)} of {len(extract_scene_class_names(current_code))}"
+    console.print(f"[bold {status_color}]Execution Status: {'Success' if success else 'Failed'}[/bold {status_color}]")
+    console.print(f"[bold {status_color}]Scenes Rendered: {scenes_rendered}[/bold {status_color}]")
+    
     if config["manim_logs"]:
-        console.print(f"Output:\n{combined_logs}")
+        console.print(Panel(combined_logs, title="[cyan]Execution Logs[/cyan]", border_style="cyan"))
+    
     working_code = current_code if success else None
 
     if not working_code:
-        console.print("[bold red]Initial code failed to execute properly.[/bold red]")
+        console.print(Panel("[bold red]Initial code failed to execute properly.[/bold red]", border_style="red"))
     
     # Execute review cycles
     current_code, new_working_code, combined_logs = review_and_update_code(current_code, main_messages, combined_logs, last_frames, config)
@@ -193,21 +202,19 @@ def main():
 
     # Final output
     if working_code:
-        console.rule("Final Result", style="bold green")
-        console.print("\n[bold underline]Final Manim Code:[/bold underline]\n")
-        console.print(working_code)
+        console.rule("[bold green]Final Result", style="green")
+        print_code_with_syntax(working_code, console, "Final Manim Code")
         saved_file = save_code_to_file(working_code, filename=f"{config['output_dir']}/video.py")
+        console.print(f"[bold green]Code saved to: {saved_file}[/bold green]")
 
-        console.rule("Rendering", style="bold blue")
+        console.rule("[bold blue]Rendering Options", style="blue")
         if Confirm.ask("[bold yellow]Would you like to render the final video?[/bold yellow]"):
-            console.rule("Rendering Final Video", style="bold blue")
+            console.rule("[bold blue]Rendering Final Video", style="blue")
             render_and_concat(saved_file, config["output_dir"], "final_video.mp4")
     else:
-        console.rule("Final Result - With Errors (Not Executable)", style="bold green")
-        console.print("\n[bold underline]Final Manim Code with errors :[/bold underline]\n")
-        console.print(Syntax(current_code, "python", theme="monokai", line_numbers=True))
-        console.print("\n[bold underline]Output :[/bold underline]\n")
-        console.print(combined_logs)
+        console.rule("[bold red]Final Result - With Errors (Not Executable)", style="red")
+        print_code_with_syntax(current_code, console, "Final Manim Code (with errors)")
+        console.print(Panel(combined_logs, title="[red]Execution Errors[/red]", border_style="red"))
 
 
 if __name__ == "__main__":
