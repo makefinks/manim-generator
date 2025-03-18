@@ -3,6 +3,7 @@ from rich.syntax import Syntax
 from rich.text import Text
 from rich.live import Live
 from rich.panel import Panel
+from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 import time
 
