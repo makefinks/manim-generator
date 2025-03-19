@@ -28,7 +28,7 @@ def get_response_with_status(model: str, messages: list, temperature: float, str
             TimeElapsedColumn(),
             transient=True,
         ) as progress:
-            task = progress.add_task("[bold green]Generating response..." if not status else status, total=None)
+            task = progress.add_task(f"[bold green]Generating response [{model}]..." if not status else status, total=None)
             response_text = get_completion_with_retry(model, messages, temperature, console)
             progress.update(task, completed=True)
     

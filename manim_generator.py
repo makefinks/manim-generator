@@ -24,7 +24,7 @@ from utils.file import load_video_data
 DEFAULT_CONFIG = {
     "manim_model": "openrouter/anthropic/claude-3.7-sonnet",
     "review_model": "openrouter/anthropic/claude-3.7-sonnet",
-    "review_cycles": 2,
+    "review_cycles": 5,
     "output_dir": f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
     "manim_logs": False,
     "streaming": False,
@@ -93,7 +93,7 @@ def generate_initial_code(video_data: str, config: dict) -> tuple[str, list]:
         "role": "system",
         "content": format_prompt("init_prompt", {"video_data": video_data}),
     }]
-    response = get_response_with_status(config["manim_model"], main_messages, 0.7, config["streaming"], "[bold green]Generating initial code", console)
+    response = get_response_with_status(config["manim_model"], main_messages, 0.7, config["streaming"], f"[bold green]Generating initial code \\[{config['manim_model']}\]", console)
     console.clear()
     code = parse_code_block(response)
     print_code_with_syntax(code, console, "Generated Initial Manim Code")
@@ -136,7 +136,7 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
                 {"type": "text", "text": review_content},
             ] + (convert_frames_to_message_format(last_frames) if last_frames and vision_enabled else [])
         }]
-        review = get_response_with_status(config["review_model"], review_message, 0.7, config["streaming"], status="[bold blue]Generating Review", console=console)
+        review = get_response_with_status(config["review_model"], review_message, 0.7, config["streaming"], status=f"[bold blue]Generating Review \\[{config['review_model']}\\]", console=console)
         previous_reviews.append(review)
         console.print(Panel(Markdown(review), title="[blue]Review Feedback[/blue]", border_style="blue"))
 
@@ -147,7 +147,7 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
         })
 
         console.rule(f"[bold green]Generating Code Revision {cycle + 1}", style="green")
-        revised_response = get_response_with_status(config["manim_model"], main_messages, 0.7, config["streaming"], "[bold green]Generating code revision", console)
+        revised_response = get_response_with_status(config["manim_model"], main_messages, 0.7, config["streaming"], f"[bold green]Generating code revision \\[{config['manim_model']}]", console)
         main_messages.append({"role": "assistant", "content": revised_response})
         current_code = parse_code_block(revised_response)
         print_code_with_syntax(current_code, console, f"Revised Code - Cycle {cycle + 1}")
