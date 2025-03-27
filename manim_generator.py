@@ -22,9 +22,9 @@ from utils.file import load_video_data
 
 # Default configuration
 DEFAULT_CONFIG = {
-    "manim_model": "openrouter/anthropic/claude-3.7-sonnet",
-    "review_model": "openrouter/anthropic/claude-3.7-sonnet",
-    "review_cycles": 5,
+    "manim_model": "openrouter/google/gemini-2.5-pro-exp-03-25:free",
+    "review_model": "openrouter/google/gemini-2.5-pro-exp-03-25:free",
+    "review_cycles": 3,
     "output_dir": f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
     "manim_logs": False,
     "streaming": False,
@@ -118,7 +118,10 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
     """
     working_code = None
     previous_reviews = []
+    
+    # Check if the model supports vision/images
     vision_enabled = supports_vision(model=config["review_model"])
+    console.print(f"[bold {'green' if vision_enabled else 'yellow'}]Vision support: {'Enabled' if vision_enabled else 'Disabled'}[/bold]")
 
     for cycle in range(config["review_cycles"]):
         console.rule(f"[bold blue]Review Cycle {cycle + 1}", style="blue")
