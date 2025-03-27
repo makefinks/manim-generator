@@ -121,7 +121,7 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
     
     # Check if the model supports vision/images
     vision_enabled = supports_vision(model=config["review_model"])
-    console.print(f"[bold {'green' if vision_enabled else 'yellow'}]Vision support: {'Enabled' if vision_enabled else 'Disabled'}[/bold]")
+    console.print(f"[bold {'green' if vision_enabled else 'yellow'}]Vision support: {'Enabled' if vision_enabled else 'Disabled'}[/bold {'green' if vision_enabled else 'yellow'}]")
 
     for cycle in range(config["review_cycles"]):
         console.rule(f"[bold blue]Review Cycle {cycle + 1}", style="blue")
