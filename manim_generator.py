@@ -22,12 +22,13 @@ from utils.file import load_video_data
 
 # Default configuration
 DEFAULT_CONFIG = {
-    "manim_model": "openrouter/google/gemini-2.5-pro-exp-03-25:free",
-    "review_model": "openrouter/google/gemini-2.5-pro-exp-03-25:free",
+    "manim_model": "gemini/gemini-2.5-pro-exp-03-25",
+    "review_model": "gemini/gemini-2.5-pro-exp-03-25",
     "review_cycles": 3,
     "output_dir": f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
     "manim_logs": False,
     "streaming": False,
+    "temperature": 0.4
 }
 
 console = Console()
@@ -56,7 +57,8 @@ def parse_arguments():
                         help="Show Manim execution logs")
     parser.add_argument("--streaming", action="store_true", 
                         help="Enable streaming responses from the model")
-    
+    parser.add_argument("--temperature", type=float, default=DEFAULT_CONFIG["temperature"], help="Temperature for the LLM Model")
+
     args = parser.parse_args()
     
     # Build config from arguments
@@ -67,6 +69,7 @@ def parse_arguments():
         "output_dir": args.output_dir,
         "manim_logs": args.manim_logs,
         "streaming": args.streaming,
+        "temperature": args.temperature
     }
     
     # Create output directory if it doesn't exist
@@ -93,7 +96,7 @@ def generate_initial_code(video_data: str, config: dict) -> tuple[str, list]:
         "role": "system",
         "content": format_prompt("init_prompt", {"video_data": video_data}),
     }]
-    response = get_response_with_status(config["manim_model"], main_messages, 0.7, config["streaming"], f"[bold green]Generating initial code \\[{config['manim_model']}\]", console)
+    response = get_response_with_status(config["manim_model"], main_messages, config["temperature"], config["streaming"], f"[bold green]Generating initial code \\[{config['manim_model']}\]", console)
     console.clear()
     code = parse_code_block(response)
     print_code_with_syntax(code, console, "Generated Initial Manim Code")
@@ -139,7 +142,7 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
                 {"type": "text", "text": review_content},
             ] + (convert_frames_to_message_format(last_frames) if last_frames and vision_enabled else [])
         }]
-        review = get_response_with_status(config["review_model"], review_message, 0.7, config["streaming"], status=f"[bold blue]Generating Review \\[{config['review_model']}\\]", console=console)
+        review = get_response_with_status(config["review_model"], review_message, config["temperature"], config["streaming"], status=f"[bold blue]Generating Review \\[{config['review_model']}\\]", console=console)
         previous_reviews.append(review)
         console.print(Panel(Markdown(review), title="[blue]Review Feedback[/blue]", border_style="blue"))
 
@@ -150,7 +153,7 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
         })
 
         console.rule(f"[bold green]Generating Code Revision {cycle + 1}", style="green")
-        revised_response = get_response_with_status(config["manim_model"], main_messages, 0.7, config["streaming"], f"[bold green]Generating code revision \\[{config['manim_model']}]", console)
+        revised_response = get_response_with_status(config["manim_model"], main_messages, config["temperature"], config["streaming"], f"[bold green]Generating code revision \\[{config['manim_model']}]", console)
         main_messages.append({"role": "assistant", "content": revised_response})
         current_code = parse_code_block(revised_response)
         print_code_with_syntax(current_code, console, f"Revised Code - Cycle {cycle + 1}")

@@ -58,6 +58,9 @@ def get_completion_with_retry(
                 )
                 time.sleep(wait_time)
             retries += 1
+        except Exception as e:
+            console.print(f"[bold red]Error: {e}[/bold red]")
+            return "Review model failed to generate response."
 
     raise Exception("[bold red]Max retries exceeded. Still rate limited.[/bold red]")
 
