@@ -112,7 +112,7 @@ def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "
     
     return overall_success, frames_base64, combined_logs
 
-def extract_scene_class_names_ast(code: str) -> list[str]:
+def extract_scene_class_names(code: str) -> list[str]:
     """
     Parses `code` into an AST and returns every ClassDef whose base
     class name ends with 'Scene' (e.g. Scene, ThreeDScene).
