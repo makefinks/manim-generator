@@ -1,1 +1,4 @@
-Use your own information about the manim library and explain and show what can be done with it.
+Create a detailed video explaining what Manim is and exploring the creative possibilities it enables.
+Cover key features such as animations, transformations, mathematical expressions, and visual storytelling.
+Ensure the video is visually appealing, coherent, and engaging, making use of compelling examples and clear demonstrations that showcase Manim's capabilities.
+Create around 10 Scenes.

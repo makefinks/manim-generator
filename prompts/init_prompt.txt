@@ -10,7 +10,7 @@ You are tasked to generate a high quality animated video in the style of the you
 
 You are free to structure the video to your liking but keep the following things in mind:
  
-- generate a Python script using Manim where each distinct part of the video is represented by its own scene. Each scene should be defined as a separate class inheriting from Scene (or an appropriate Manim scene class) and include a title, animations, Make sure that the script does not combine multiple subscenes into a single Scene.
+- generate a Python script using Manim where each distinct part of the video is represented by its own scene. Each scene should be defined as a separate class inheriting from `Scene` (or an appropriate Manim scene class) and include a title and animations. Make sure that the script does not combine multiple subscenes into a single Scene.
 - Do not create a class aggregating these scenes
 - Be aware of the screen size and resolution and make sure elements do not overlap
 - Use a black background with white text and yellow text for highlighting

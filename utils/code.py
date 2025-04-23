@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 from rich.console import Console
+import ast
 
 logger = logging.getLogger(__file__)
 
@@ -111,13 +112,26 @@ def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "
     
     return overall_success, frames_base64, combined_logs
 
-def extract_scene_class_names(code: str) -> list[str]:
+def extract_scene_class_names_ast(code: str) -> list[str]:
     """
-    Extracts all class names that inherit from a Manim Scene.
-    Assumes that the classes are defined like: `class ClassName(...Scene):`
+    Parses `code` into an AST and returns every ClassDef whose base
+    class name ends with 'Scene' (e.g. Scene, ThreeDScene).
     """
-    pattern = re.compile(r'class\s+(\w+)\(.*Scene.*\):')
-    return pattern.findall(code)
+    tree = ast.parse(code)
+    scene_names: list[str] = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            for base in node.bases:
+                if (
+                    isinstance(base, ast.Name) and base.id.endswith("Scene")
+                ) or (
+                    isinstance(base, ast.Attribute) and base.attr.endswith("Scene")
+                ):
+                    scene_names.append(node.name)
+                    break
+
+    return scene_names
 
 
 def parse_code_block(text: str) -> str | None:

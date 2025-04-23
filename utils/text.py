@@ -44,5 +44,5 @@ def convert_frames_to_message_format(frames: str) -> list[str]:
     Converts base64 encoded video frames into a list of message objects which litellm expects
     https://docs.litellm.ai/docs/completion/vision
     """
-    return [{"type": "image_url", "image_url": { "url": frame }} for frame in frames]
+    return [{"type": "image_url", "image_url": { "url": frame, "format": "image/png"}} for frame in frames]
 

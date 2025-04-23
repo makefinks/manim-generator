@@ -7,6 +7,7 @@ from rich.prompt import Confirm
 from rich.panel import Panel
 from rich.markdown import Markdown
 from litellm import supports_vision
+import litellm
 
 from utils.code import (
     extract_scene_class_names,
@@ -24,7 +25,7 @@ from utils.file import load_video_data
 DEFAULT_CONFIG = {
     "manim_model": "gemini/gemini-2.5-pro-exp-03-25",
     "review_model": "gemini/gemini-2.5-pro-exp-03-25",
-    "review_cycles": 3,
+    "review_cycles": 5,
     "output_dir": f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
     "manim_logs": False,
     "streaming": False,
@@ -32,6 +33,8 @@ DEFAULT_CONFIG = {
 }
 
 console = Console()
+
+#litellm._turn_on_debug()
 
 def parse_arguments():
     """Parse command line arguments and return the configuration."""
@@ -59,8 +62,15 @@ def parse_arguments():
                         help="Enable streaming responses from the model")
     parser.add_argument("--temperature", type=float, default=DEFAULT_CONFIG["temperature"], help="Temperature for the LLM Model")
 
+    parser.add_argument("--force_vision", action="store_true", default=False, help="Adds images to the review process, regardless if LiteLLM reports vision is not supported. (Check API provider)")
+
     args = parser.parse_args()
-    
+
+
+    # Check if the model supports vision/images
+    vision_enabled = supports_vision(model=args.review_model) or args.force_vision
+    console.print(f"[bold {'green' if vision_enabled else 'yellow'}]Vision support: {'Enabled' if vision_enabled else 'Disabled'}[/bold {'green' if vision_enabled else 'yellow'}]")
+
     # Build config from arguments
     config = {
         "manim_model": args.manim_model,
@@ -69,7 +79,8 @@ def parse_arguments():
         "output_dir": args.output_dir,
         "manim_logs": args.manim_logs,
         "streaming": args.streaming,
-        "temperature": args.temperature
+        "temperature": args.temperature,
+        "vision_enabled": vision_enabled
     }
     
     # Create output directory if it doesn't exist
@@ -91,6 +102,8 @@ def generate_initial_code(video_data: str, config: dict) -> tuple[str, list]:
             - The generated Manim code as a string
             - The conversation history with the model as a list of messages
     """
+    
+
     console.rule("[bold green]Initial Manim Code Generation", style="green")
     main_messages = [{
         "role": "system",
@@ -122,12 +135,13 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
     working_code = None
     previous_reviews = []
     
-    # Check if the model supports vision/images
-    vision_enabled = supports_vision(model=config["review_model"])
-    console.print(f"[bold {'green' if vision_enabled else 'yellow'}]Vision support: {'Enabled' if vision_enabled else 'Disabled'}[/bold {'green' if vision_enabled else 'yellow'}]")
 
     for cycle in range(config["review_cycles"]):
         console.rule(f"[bold blue]Review Cycle {cycle + 1}", style="blue")
+
+        frames_formatted = convert_frames_to_message_format(last_frames) if last_frames and config["vision_enabled"] else []
+
+        console.print(f"[blue] Adding {len(frames_formatted)} images to the review")
         review_content = format_prompt(
             "review_prompt",
             {
@@ -140,8 +154,9 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
             "role": "system",
             "content": [
                 {"type": "text", "text": review_content},
-            ] + (convert_frames_to_message_format(last_frames) if last_frames and vision_enabled else [])
+            ] + frames_formatted
         }]
+
         review = get_response_with_status(config["review_model"], review_message, config["temperature"], config["streaming"], status=f"[bold blue]Generating Review \\[{config['review_model']}\\]", console=console)
         previous_reviews.append(review)
         console.print(Panel(Markdown(review), title="[blue]Review Feedback[/blue]", border_style="blue"))
@@ -149,7 +164,7 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
         # Append feedback for code revision
         main_messages.append({
             "role": "user",
-            "content": f"Here is some feedback on your code. \n\n<review{review}</review>\n\nPlease implement the suggestions and respond with the whole script."
+            "content": f"Here is some feedback on your code. \n\n<review{review}</review>\n\nPlease implement the suggestions and respond with the whole script. Do not leave anything out."
         })
 
         console.rule(f"[bold green]Generating Code Revision {cycle + 1}", style="green")
