@@ -1,9 +1,9 @@
 """Utility functions for video generation and manipulation with Manim."""
 
 import os
-import re
 import subprocess
 import logging
+from utils.code import extract_scene_class_names
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def render_and_concat(script_file: str, output_media_dir: str, final_output: str
     
     # Print output in real-time
     while True:
-        output = process.stdout.readline()
+        output = process.stdout.readline() 
         if output == '' and process.poll() is not None:
             break
         if output:
@@ -51,11 +51,7 @@ def render_and_concat(script_file: str, output_media_dir: str, final_output: str
     with open(script_file, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # This regex finds lines like: "class SceneName(Scene):"
-    scene_names = re.findall(r"class\s+(\w+)\(Scene\):", content)
-    if not scene_names:
-        logger.error("No scene classes were found in the script.")
-        return
+    scene_names = extract_scene_class_names(content)
     
     logger.info("Found scene names in order: %s", scene_names)
     

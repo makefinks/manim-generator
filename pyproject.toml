@@ -7,5 +7,6 @@ License = "MIT"
 requires-python = ">=3.10"
 dependencies = [
     "litellm>=1.59.8",
-    "manim>=0.19.0",
+    "manim==0.17.0",
+    "setuptools>=79.0.0",
 ]

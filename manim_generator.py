@@ -34,7 +34,7 @@ DEFAULT_CONFIG = {
 
 console = Console()
 
-#litellm._turn_on_debug()
+# litellm._turn_on_debug()
 
 def parse_arguments():
     """Parse command line arguments and return the configuration."""
@@ -151,7 +151,7 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
             },
         )
         review_message = [{
-            "role": "system",
+            "role": "user",
             "content": [
                 {"type": "text", "text": review_content},
             ] + frames_formatted
@@ -206,7 +206,10 @@ def main():
     success, last_frames, combined_logs = run_manim_multiscene(current_code, console, config["output_dir"])
     
     status_color = "green" if success else "red"
-    scenes_rendered = f"{len(last_frames)} of {len(extract_scene_class_names(current_code))}"
+   
+    extract_output = extract_scene_class_names(current_code)
+    all_scenes_count = "N/A" if isinstance(extract_output, Exception) else len(extract_output)
+    scenes_rendered = f"{len(last_frames)} of {all_scenes_count}"
     console.print(f"[bold {status_color}]Execution Status: {'Success' if success else 'Failed'}[/bold {status_color}]")
     console.print(f"[bold {status_color}]Scenes Rendered: {scenes_rendered}[/bold {status_color}]")
     

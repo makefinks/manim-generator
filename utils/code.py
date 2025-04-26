@@ -55,7 +55,11 @@ def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "
     
     # Extract scene names from the code
     scene_names = extract_scene_class_names(code)
-    
+
+    # if we encounter an exception parsing the scene class names (e.g syntax error) we return the exception message
+    if isinstance(scene_names, Exception):
+        return False, [], str(scene_names)
+
     combined_logs = ""
     overall_success = True
 
@@ -112,24 +116,27 @@ def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "
     
     return overall_success, frames_base64, combined_logs
 
-def extract_scene_class_names(code: str) -> list[str]:
+def extract_scene_class_names(code: str) -> list[str] | Exception:
     """
     Parses `code` into an AST and returns every ClassDef whose base
     class name ends with 'Scene' (e.g. Scene, ThreeDScene).
     """
-    tree = ast.parse(code)
-    scene_names: list[str] = []
+    try:
+        tree = ast.parse(code)
+        scene_names: list[str] = []
 
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef):
-            for base in node.bases:
-                if (
-                    isinstance(base, ast.Name) and base.id.endswith("Scene")
-                ) or (
-                    isinstance(base, ast.Attribute) and base.attr.endswith("Scene")
-                ):
-                    scene_names.append(node.name)
-                    break
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                for base in node.bases:
+                    if (
+                        isinstance(base, ast.Name) and base.id.endswith("Scene")
+                    ) or (
+                        isinstance(base, ast.Attribute) and base.attr.endswith("Scene")
+                    ):
+                        scene_names.append(node.name)
+                        break
+    except Exception as e:
+        return e
 
     return scene_names
 
