@@ -73,14 +73,16 @@ def get_response_with_status(
             if reasoning is not None:
                 completion_args["reasoning"] = reasoning
 
-            response_text, usage_info, reasoning_content = get_completion_with_retry(**completion_args)
+            response_text, usage_info, reasoning_content = get_completion_with_retry(
+                **completion_args
+            )
             progress.update(task, completed=True)
 
     elapsed_time = time.time() - start_time
 
     # Display token and cost information
     console.print(
-        f"[dim italic]Request completed in {elapsed_time:.2f} seconds | Tokens: {usage_info.get('total_tokens', 0)} | Cost: ${usage_info.get('cost', 0):.6f}[/dim italic]"
+        f"[dim italic]Request completed in {elapsed_time:.2f} seconds | Input Tokens: {usage_info.get('prompt_tokens', 0)} | Output Tokens: {usage_info.get('completion_tokens', 0)} | Cost: ${usage_info.get('cost', 0):.6f}[/dim italic]"
     )
 
     return response_text, usage_info, reasoning_content if not streaming else None

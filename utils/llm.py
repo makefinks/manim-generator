@@ -3,9 +3,75 @@
 import re
 import time
 from typing import Generator, Dict, Any
-from litellm import completion, completion_cost
+from litellm import completion, completion_cost, model_cost, register_model
 from openai import RateLimitError
 from rich.console import Console
+from rich.prompt import Prompt
+
+
+def check_and_register_models(models: list[str], console: Console) -> None:
+    """
+    Checks if models are registered in the LiteLLM cost map.
+    If not, prompts the user for costs and registers them.
+
+    Args:
+        models (list[str]): List of models to check
+        console (Console): Rich console instance for output
+    """
+    for model in models:
+        if model not in model_cost:
+            console.print(
+                f"[yellow]Model '{model}' is not registered in the LiteLLM cost map.[/yellow]"
+            )
+
+            # Ask for input costs
+            input_cost_str = Prompt.ask(
+                f"[cyan]Input token cost for '{model}' per million tokens (e.g. 0.50) [Press Enter to skip][/cyan]",
+                default="",
+            )
+
+            # If nothing entered, skip registration
+            if not input_cost_str.strip():
+                console.print(
+                    f"[yellow]Cost registration for '{model}' skipped. Cost calculation will not work.[/yellow]"
+                )
+                continue
+
+            # Ask for output costs
+            output_cost_str = Prompt.ask(
+                f"[cyan]Output token cost for '{model}' per Million tokens (e.g. 2.00) [Press Enter to skip][/cyan]",
+                default="",
+            )
+
+            # If output costs not entered, skip
+            if not output_cost_str.strip():
+                console.print(
+                    f"[yellow]Cost registration for '{model}' skipped. Cost calculation will not work.[/yellow]"
+                )
+                continue
+
+            try:
+                input_cost = float(input_cost_str) / 1_000_000
+                output_cost = float(output_cost_str) / 1_000_000
+
+                # Register the model
+                register_model(
+                    {
+                        model: {
+                            "input_cost_per_token": input_cost,
+                            "output_cost_per_token": output_cost,
+                        }
+                    }
+                )
+
+                console.print(
+                    f"[green]Model '{model}' successfully registered with costs: ${input_cost}/${output_cost} per token (input/output)[/green]"
+                )
+
+            except ValueError:
+                console.print(
+                    f"[red]Invalid cost values entered. Cost registration for '{model}' skipped.[/red]"
+                )
 
 
 def get_completion_with_retry(
@@ -74,7 +140,7 @@ def get_completion_with_retry(
             # Extract reasoning content if available
             reasoning_content = None
             message = response["choices"][0]["message"]
-            if hasattr(message, 'reasoning_content') and message.reasoning_content:
+            if hasattr(message, "reasoning_content") and message.reasoning_content:
                 reasoning_content = message.reasoning_content
 
             return response_content, usage_info, reasoning_content

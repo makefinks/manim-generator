@@ -416,6 +416,11 @@ def review_and_update_code(
 def main():
     config, video_data_arg, video_data_file = parse_arguments()
 
+    # Check and register models for cost calculation
+    from utils.llm import check_and_register_models
+    models_to_check = [config["manim_model"], config["review_model"]]
+    check_and_register_models(models_to_check, console)
+
     # Get video data from argument or file
     if video_data_arg:
         video_data = video_data_arg
