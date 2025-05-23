@@ -57,7 +57,9 @@ def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "
 
     # if we encounter an exception parsing the scene class names (e.g syntax error) we return the exception message
     if isinstance(scene_names, Exception):
-        return False, [], str(scene_names)
+        error_msg = f"Code parsing failed: {str(scene_names)}\n\nGenerated code has syntax errors and cannot be executed."
+        console.print(f"[red]Code parsing error: {str(scene_names)}[/red]")
+        return False, [], error_msg
 
     combined_logs = ""
     overall_success = True
@@ -117,7 +119,12 @@ def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "
 
 
 def extract_scene_class_names(code: str) -> list[str] | Exception:
-    tree = ast.parse(code)
+    try:
+        tree = ast.parse(code)
+    except Exception as e:
+        # Return the syntax error with more context
+        return SyntaxError(f"Syntax error in code: {str(e)}")
+        
     scene_names: list[str] = []
     
     try:
