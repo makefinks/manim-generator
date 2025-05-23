@@ -14,6 +14,7 @@ You are free to structure the video to your liking but keep the following things
 - Do not create a class aggregating these scenes
 - Be aware of the screen size and resolution and make sure elements do not overlap
 - Use a black background with white text and yellow text for highlighting
+- Do NOT use external resources or dependencies like svg's, images, or other libraries.
 - Each Scene should have a title at the top and contents which are displayed below.
 - Each Scene should have a duration so everything on it can be read and understood by the viewer. Keep in mind that animations first have to play out so the whole scene is not visible directly. Make each scene atleast 5 seconds long.
 

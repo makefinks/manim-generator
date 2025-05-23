@@ -2,12 +2,10 @@ from datetime import datetime
 import argparse
 import os
 from rich.console import Console
-from rich.syntax import Syntax
 from rich.prompt import Confirm
 from rich.panel import Panel
 from rich.markdown import Markdown
 from litellm import supports_vision
-import litellm
 
 from utils.code import (
     extract_scene_class_names,
@@ -177,7 +175,9 @@ def review_and_update_code(current_code: str, main_messages: list, combined_logs
         success, last_frames, combined_logs = run_manim_multiscene(current_code, console, config["output_dir"])
         
         status_color = "green" if success else "red"
-        scenes_rendered = f"{len(last_frames)} of {len(extract_scene_class_names(current_code))}"
+       
+        scene_names = extract_scene_class_names(current_code)
+        scenes_rendered = f"{len(last_frames)} of {len(scene_names) if isinstance(scene_names, list) else '? (Syntax error)'}"
         console.print(f"[bold {status_color}]Execution Status: {'Success' if success else 'Failed'}[/bold {status_color}]")
         console.print(f"[bold {status_color}]Scenes Rendered: {scenes_rendered}[/bold {status_color}]")
         

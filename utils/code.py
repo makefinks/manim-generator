@@ -1,5 +1,4 @@
 """Utility functions for code execution / interaction"""
-
 import base64
 import logging
 import os
@@ -116,30 +115,25 @@ def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "
     
     return overall_success, frames_base64, combined_logs
 
-def extract_scene_class_names(code: str) -> list[str] | Exception:
-    """
-    Parses `code` into an AST and returns every ClassDef whose base
-    class name ends with 'Scene' (e.g. Scene, ThreeDScene).
-    """
-    try:
-        tree = ast.parse(code)
-        scene_names: list[str] = []
 
+def extract_scene_class_names(code: str) -> list[str] | Exception:
+    tree = ast.parse(code)
+    scene_names: list[str] = []
+    
+    try:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 for base in node.bases:
-                    if (
-                        isinstance(base, ast.Name) and base.id.endswith("Scene")
-                    ) or (
-                        isinstance(base, ast.Attribute) and base.attr.endswith("Scene")
-                    ):
+                    # gets scenes that inherit from 'Scene'
+                    base_id = (
+                        base.id if isinstance(base, ast.Name) else getattr(base, "attr", "")
+                    )
+                    if base_id.endswith("Scene"):
                         scene_names.append(node.name)
                         break
     except Exception as e:
         return e
-
     return scene_names
-
 
 def parse_code_block(text: str) -> str | None:
     """
@@ -153,3 +147,6 @@ def parse_code_block(text: str) -> str | None:
         re.DOTALL,  # Allows . to match newlines
     )
     return match.group(1).strip() if match else text
+
+
+
