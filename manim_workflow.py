@@ -81,6 +81,7 @@ class ManimWorkflow:
             f"[bold green]Generating initial code \\[{self.config['manim_model']}\\]",
             self.console,
             reasoning=self.config["reasoning"],
+            provider=self.config["provider"],
         )
         
         # Track usage
@@ -255,6 +256,7 @@ class ManimWorkflow:
             status=f"[bold blue]Generating Review \\[{self.config['review_model']}\\]",
             console=self.console,
             reasoning=self.config["reasoning"],
+            provider=self.config["provider"],
         )
         
         # Track review usage
@@ -287,6 +289,7 @@ class ManimWorkflow:
             f"[bold green]Generating code revision \\[{self.config['manim_model']}]",
             self.console,
             reasoning=self.config["reasoning"],
+            provider=self.config["provider"],
         )
         
         # Display reasoning content if available and not streaming

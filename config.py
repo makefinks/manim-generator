@@ -103,6 +103,11 @@ class Config:
             default=False,
             help="Adds images to the review process, regardless if LiteLLM reports vision is not supported. (Check API provider)",
         )
+        parser.add_argument(
+            "--provider",
+            type=str,
+            help="Specific provider to use for OpenRouter requests (e.g., 'anthropic', 'openai')",
+        )
 
         # Reasoning tokens configuration
         parser.add_argument(
@@ -161,4 +166,5 @@ class Config:
             "temperature": args.temperature,
             "vision_enabled": vision_enabled,
             "reasoning": reasoning_config if reasoning_config else None,
+            "provider": args.provider,
         }

@@ -18,6 +18,7 @@ def get_response_with_status(
     status: str | None,
     console: Console,
     reasoning: dict = None,
+    provider: str = None,
 ) -> tuple[str, Dict[str, Any]]:
     """Gets a response from the model, handling streaming if enabled.
 
@@ -36,6 +37,8 @@ def get_response_with_status(
         }
         if reasoning is not None:
             stream_gen_args["reasoning"] = reasoning
+        if provider is not None:
+            stream_gen_args["provider"] = provider
 
         stream_gen = get_streaming_completion_with_retry(**stream_gen_args)
         usage_info = {}
@@ -72,6 +75,8 @@ def get_response_with_status(
             }
             if reasoning is not None:
                 completion_args["reasoning"] = reasoning
+            if provider is not None:
+                completion_args["provider"] = provider
 
             response_text, usage_info, reasoning_content = get_completion_with_retry(
                 **completion_args

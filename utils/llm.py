@@ -81,6 +81,7 @@ def get_completion_with_retry(
     console: Console,
     max_retries: int = 5,
     reasoning: dict = None,
+    provider: str = None,
 ) -> tuple[str, Dict[str, Any]]:
     """
     Makes a non-streaming LLM completion request with automatic retry on rate limit errors.
@@ -112,6 +113,9 @@ def get_completion_with_retry(
 
             if reasoning is not None:
                 completion_args["reasoning"] = reasoning
+            
+            if provider is not None:
+                completion_args["provider"] = {"order": [provider]}
 
             response = completion(**completion_args)
             response_content = response["choices"][0]["message"]["content"]
@@ -182,6 +186,7 @@ def get_streaming_completion_with_retry(
     console: Console,
     max_retries: int = 5,
     reasoning: dict = None,
+    provider: str = None,
 ) -> Generator[tuple[str, str, Dict[str, Any]], None, None]:
     """
     Makes a streaming LLM completion request with automatic retry on rate limit errors.
@@ -214,6 +219,9 @@ def get_streaming_completion_with_retry(
 
             if reasoning is not None:
                 completion_args["reasoning"] = reasoning
+            
+            if provider is not None:
+                completion_args["provider"] = {"order": [provider]}
 
             response = completion(**completion_args)
             full_response = ""
