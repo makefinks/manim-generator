@@ -18,6 +18,7 @@ from utils.text import (
 )
 from utils.video import render_and_concat
 from utils.llm import check_and_register_models
+from utils.artifacts import ArtifactManager
 
 
 class TokenUsageTracker:
@@ -53,6 +54,7 @@ class ManimWorkflow:
         self.config = config
         self.console = console
         self.usage_tracker = TokenUsageTracker()
+        self.artifact_manager = ArtifactManager(config["output_dir"], console)
         
         # Check and register models for cost calculation
         models_to_check = [config["manim_model"], config["review_model"]]
@@ -103,6 +105,15 @@ class ManimWorkflow:
         code = parse_code_block(response)
         print_code_with_syntax(code, self.console, "Generated Initial Manim Code")
         
+        # Save initial generation artifacts
+        prompt_content = format_prompt("init_prompt", {"video_data": video_data})
+        self.artifact_manager.save_step_artifacts(
+            "initial",
+            code=code,
+            prompt=prompt_content,
+            reasoning=reasoning_content
+        )
+        
         return code, main_messages
     
     def execute_code(self, code: str, step_name: str = "Execution") -> tuple[bool, list, str]:
@@ -118,10 +129,17 @@ class ManimWorkflow:
         self.console.rule(f"[bold green]Running Manim Script - {step_name}", style="green")
         
         success, frames, logs = run_manim_multiscene(
-            code, self.console, self.config["output_dir"]
+            code, self.console, self.config["output_dir"], step_name.lower().replace(" ", "_"), self.artifact_manager
         )
         
         self._display_execution_status(success, frames, code, logs)
+        
+        # Save execution artifacts
+        self.artifact_manager.save_step_artifacts(
+            step_name.lower().replace(" ", "_"),
+            code=code,
+            logs=logs
+        )
         
         return success, frames, logs
     
@@ -286,6 +304,14 @@ class ManimWorkflow:
         # Track review usage
         self.usage_tracker.add_step(f"Review Cycle {cycle_num}", self.config["review_model"], usage_info)
         
+        # Save review artifacts
+        self.artifact_manager.save_step_artifacts(
+            f"review_{cycle_num}",
+            prompt=review_content,
+            review_text=response,
+            reasoning=reasoning_content
+        )
+        
         return response, reasoning_content
     
     def _generate_code_revision(
@@ -334,6 +360,15 @@ class ManimWorkflow:
             revised_code, self.console, f"Revised Code - Cycle {cycle_num}"
         )
         
+        # Save revision artifacts
+        revision_prompt = f"Here is the current code:\n\n```python\n{current_code}\n```\n\nHere is some feedback on your code:\n\n<review>\n{review}\n</review>\n\nPlease implement the suggestions and respond with the whole script. Do not leave anything out."
+        self.artifact_manager.save_step_artifacts(
+            f"revision_{cycle_num}",
+            code=revised_code,
+            prompt=revision_prompt,
+            reasoning=reasoning_content
+        )
+        
         return revised_code
     
     def finalize_output(self, working_code: str | None, final_code: str, logs: str) -> None:
@@ -351,6 +386,12 @@ class ManimWorkflow:
             if Confirm.ask("[bold blue]Would you like to render the final video?[/bold blue]"):
                 self.console.rule("[bold blue]Rendering Final Video", style="blue")
                 render_and_concat(saved_file, self.config["output_dir"], "final_video.mp4")
+                
+                # Save final artifacts
+                self.artifact_manager.save_step_artifacts(
+                    "final",
+                    code=working_code
+                )
         else:
             self.console.rule(
                 "[bold red]Final Result - With Errors (Not Executable)", style="red"

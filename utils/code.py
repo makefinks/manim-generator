@@ -3,6 +3,7 @@ import base64
 import logging
 import os
 import re
+import shutil
 import subprocess
 from rich.console import Console
 import ast
@@ -33,7 +34,7 @@ def save_code_to_file(code: str, filename: str = "video.py") -> str:
         logger.exception(e)
         return ""
     
-def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "output") -> tuple[bool, list[str], str]:
+def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "output", step_name: str = None, artifact_manager = None) -> tuple[bool, list[str], str]:
     """
     Saves the code to a file, extracts scene names, and runs each scene individually with the
     --save_last_frame flag. For each scene, if the last frame is produced successfully, the image
@@ -106,11 +107,25 @@ def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "
                             image_base64 = base64.b64encode(image_data).decode('utf-8')
                             data_url = f"data:image/png;base64,{image_base64}"
                             frames_base64.append(data_url)
-                            # Delete the image file after encoding
-                            os.remove(frame_path)
                         except Exception as e:
                             overall_success = False
                             console.print(f"[red]Error reading/encoding frame {frame_path}: {e}[/red]")
+        
+        # Copy frames to step directory if step_name and artifact_manager are provided
+        if step_name and artifact_manager:
+            step_frames_dir = artifact_manager.get_step_frames_path(step_name)
+            
+            # Copy all PNG files to the step frames directory
+            for root, dirs, files in os.walk(base_path):
+                for file in files:
+                    if file.endswith(".png"):
+                        src_path = os.path.join(root, file)
+                        # Create subdirectory structure in step frames
+                        rel_path = os.path.relpath(root, base_path)
+                        dest_dir = os.path.join(step_frames_dir, rel_path) if rel_path != "." else step_frames_dir
+                        os.makedirs(dest_dir, exist_ok=True)
+                        dest_path = os.path.join(dest_dir, file)
+                        shutil.copy2(src_path, dest_path)
     else:
         overall_success = False
         console.print(f"[red]Media directory not found at {base_path}[/red]")
