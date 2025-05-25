@@ -8,6 +8,7 @@ from utils.code import (
     run_manim_multiscene,
     parse_code_block,
     save_code_to_file,
+    calculate_scene_success_rate,
 )
 from utils.console import get_response_with_status, print_code_with_syntax
 from utils.text import (
@@ -232,14 +233,37 @@ class ManimWorkflow:
         
         self.console.print(f"[blue] Adding {len(frames_formatted)} images to the review")
         
-        review_content = format_prompt(
-            "review_prompt",
-            {
-                "previous_reviews": format_previous_reviews(previous_reviews),
-                "video_code": code,
-                "execution_logs": logs,
-            },
-        )
+        # Calculate scene success rate to determine review prompt type
+        scene_names = extract_scene_class_names(code)
+        success_rate, scenes_rendered, total_scenes = calculate_scene_success_rate(frames, scene_names)
+        
+        # Use enhanced review prompt if success rate >= threshold
+        use_enhanced_prompt = success_rate >= self.config["success_threshold"]
+        prompt_name = "review_prompt_enhanced" if use_enhanced_prompt else "review_prompt"
+        
+        if use_enhanced_prompt:
+            self.console.print(f"[green]High success rate ({success_rate:.1f}%) - Using enhanced visual review prompt")
+            review_content = format_prompt(
+                prompt_name,
+                {
+                    "previous_reviews": format_previous_reviews(previous_reviews),
+                    "video_code": code,
+                    "execution_logs": logs,
+                    "success_rate": success_rate,
+                    "scenes_rendered": scenes_rendered,
+                    "total_scenes": total_scenes,
+                },
+            )
+        else:
+            self.console.print(f"[yellow]Success rate ({success_rate:.1f}%) - Using standard technical review prompt")
+            review_content = format_prompt(
+                prompt_name,
+                {
+                    "previous_reviews": format_previous_reviews(previous_reviews),
+                    "video_code": code,
+                    "execution_logs": logs,
+                },
+            )
         
         review_message = [{
             "role": "user",
@@ -253,7 +277,7 @@ class ManimWorkflow:
             review_message,
             self.config["temperature"],
             self.config["streaming"],
-            status=f"[bold blue]Generating Review \\[{self.config['review_model']}\\]",
+            status=f"[bold blue]Generating {'Enhanced Visual' if use_enhanced_prompt else 'Technical'} Review \\[{self.config['review_model']}\\]",
             console=self.console,
             reasoning=self.config["reasoning"],
             provider=self.config["provider"],

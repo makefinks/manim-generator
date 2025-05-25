@@ -142,6 +142,29 @@ def extract_scene_class_names(code: str) -> list[str] | Exception:
         return e
     return scene_names
 
+def calculate_scene_success_rate(frames: list, scene_names: list[str] | Exception) -> tuple[float, int, int]:
+    """
+    Calculate the success rate of scene rendering.
+    
+    Args:
+        frames: List of rendered frame data
+        scene_names: List of scene class names or Exception if parsing failed
+        
+    Returns:
+        tuple: (success_rate, scenes_rendered, total_scenes)
+    """
+    if isinstance(scene_names, Exception):
+        return 0.0, 0, 0
+    
+    total_scenes = len(scene_names)
+    scenes_rendered = len(frames)
+    
+    if total_scenes == 0:
+        return 0.0, 0, 0
+    
+    success_rate = (scenes_rendered / total_scenes) * 100
+    return success_rate, scenes_rendered, total_scenes
+
 def parse_code_block(text: str) -> str | None:
     """
     Returns the first Python code block from text (None if none found).

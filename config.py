@@ -13,6 +13,8 @@ DEFAULT_CONFIG = {
     "manim_logs": False,
     "streaming": False,
     "temperature": 0.4,
+    "success_threshold": 80.0,
+    "reasoning_effort": "high",
 }
 
 
@@ -113,6 +115,7 @@ class Config:
         parser.add_argument(
             "--reasoning_effort",
             type=str,
+            default=DEFAULT_CONFIG["reasoning_effort"],
             choices=["low", "medium", "high"],
             help="Reasoning effort level for OpenAI-style models (low/medium/high)",
         )
@@ -126,6 +129,12 @@ class Config:
             action="store_true",
             default=False,
             help="Exclude reasoning tokens from response (model still uses reasoning internally)",
+        )
+        parser.add_argument(
+            "--success_threshold",
+            type=float,
+            default=DEFAULT_CONFIG["success_threshold"],
+            help="Percentage of scenes that must render successfully to trigger enhanced visual review mode (focuses on creative improvements instead of technical fixes)",
         )
 
         return parser
@@ -167,4 +176,5 @@ class Config:
             "vision_enabled": vision_enabled,
             "reasoning": reasoning_config if reasoning_config else None,
             "provider": args.provider,
+            "success_threshold": args.success_threshold,
         }

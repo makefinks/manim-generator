@@ -4,10 +4,14 @@ import re
 import time
 from typing import Generator, Dict, Any
 from litellm import completion, completion_cost, model_cost, register_model
+import litellm
 from openai import RateLimitError
 from rich.console import Console
 from rich.prompt import Prompt
 
+
+# for safety drop unsupported params
+litellm.drop_params = True
 
 def check_and_register_models(models: list[str], console: Console) -> None:
     """
