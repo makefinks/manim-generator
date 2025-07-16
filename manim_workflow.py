@@ -157,7 +157,7 @@ class ManimWorkflow:
             f"[bold {status_color}]Scenes Rendered: {scenes_rendered}[/bold {status_color}]"
         )
         
-        if self.config["manim_logs"] or not success:
+        if self.config["manim_logs"]:
             log_title = "[green]Execution Logs[/green]" if success else "[red]Execution Errors[/red]"
             log_style = "green" if success else "red"
             self.console.print(
@@ -198,7 +198,6 @@ class ManimWorkflow:
             review, review_reasoning = self._generate_review(
                 current_code, combined_logs, last_frames, previous_reviews, cycle + 1
             )
-            
             previous_reviews.append(review)
             
             # Display review feedback
@@ -221,7 +220,7 @@ class ManimWorkflow:
             
             # Generate code revision
             current_code = self._generate_code_revision(
-                current_code, review, video_data, cycle + 1
+                current_code, review, video_data, cycle + 1, last_frames
             )
             
             # Execute revised code
@@ -315,9 +314,20 @@ class ManimWorkflow:
         return response, reasoning_content
     
     def _generate_code_revision(
-        self, current_code: str, review: str, video_data: str, cycle_num: int
+        self, current_code: str, review: str, video_data: str, cycle_num: int, frames: list = None
     ) -> str:
         """Generate a revised version of the code based on review feedback."""
+        # Format frames for vision models if available
+        frames_formatted = (
+            convert_frames_to_message_format(frames)
+            if frames and self.config["vision_enabled"]
+            else []
+        )
+        
+        if frames_formatted:
+            self.console.print(f"[green] Adding {len(frames_formatted)} images to code revision")
+        
+        # Build base messages
         revision_messages = [
             {
                 "role": "system",
@@ -328,6 +338,15 @@ class ManimWorkflow:
                 "content": f"Here is the current code:\n\n```python\n{current_code}\n```\n\nHere is some feedback on your code:\n\n<review>\n{review}\n</review>\n\nPlease implement the suggestions and respond with the whole script. Do not leave anything out.",
             },
         ]
+        
+        # Add frames to the user message if available
+        if frames_formatted:
+            revision_messages[-1]["content"] = [
+                {
+                    "type": "text",
+                    "text": revision_messages[-1]["content"]
+                }
+            ] + frames_formatted
         
         self.console.rule(f"[bold green]Generating Code Revision {cycle_num}", style="green")
         

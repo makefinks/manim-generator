@@ -27,13 +27,13 @@ There also may be images provided to you, if so, please make them a priority in 
 
 Since the code is working well technically, conduct a thorough review focused on VISUAL ENHANCEMENTS and provide creative suggestions to make the animation more engaging, polished, and visually appealing.
 
+If there are scenes that are not working yet, focus on fixing these critical issues first, while making only minor suggestions for the visual improvements.
+
 IMPORTANT: Do not include things that were already mentioned in <previous_reviews>. Except for things that were not fixed.
 
 Put special focus on the following aspects:
 
 - Visual composition and layout improvements
-- Color schemes, gradients, and visual theming
-- Animation timing, easing, and transitions between scenes
 - Creative use of manim features (transforms, morphing, camera movements)
 - Text styling, fonts, and visual hierarchy
 - Background elements, decorative components
@@ -44,7 +44,9 @@ The format of your answer should be:
 
 1. Visual composition and design review
 2. Animation timing and transitions review  
-3. Creative enhancement suggestions
-4. Final verdict and priority improvements - focus on visual impact
+3. Easy creative enhancement suggestions
+4. Final verdict and 1 to 2 easy to implement improvements - approximately 5-10 lines of code
+
+Do NOT propose to use external resources or dependencies like svg's, images, or other libraries.
 
 Give feedback that will make the video more visually stunning and engaging, even if the current version works correctly.

@@ -6,11 +6,10 @@ from manim_workflow import ManimWorkflow
 from utils.file import load_video_data
 from utils.usage import display_usage_summary, save_usage_report
 
-
 def main():
     """Main entry point for the Manim generator application."""
     console = Console()
-    
+   
     # Parse configuration
     config_manager = Config()
     config, video_data_arg, video_data_file = config_manager.parse_arguments()

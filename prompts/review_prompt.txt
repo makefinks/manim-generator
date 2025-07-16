@@ -41,4 +41,6 @@ The format of your answer should be:
 2. Video layout review (overlap, positioning of elements) - make sure theres no occlusion or overlap!
 3. Final verdict and suggestions for improvement - short and concise
 
+Do NOT propose to use external resources or dependencies like svg's, images, or other libraries.
+
 Do not mention minor things like missing comments. Give feedback that is crucial to the functionality of the script.

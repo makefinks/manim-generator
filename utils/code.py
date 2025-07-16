@@ -7,6 +7,8 @@ import shutil
 import subprocess
 from rich.console import Console
 import ast
+import cv2
+import numpy as np
 
 logger = logging.getLogger(__file__)
 
@@ -68,7 +70,7 @@ def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "
     # Run each scene
     for scene in scene_names:
         with console.status(f"[bold blue]Rendering scene {scene}..."):
-            command = ["manim", "-ql", "--save_last_frame", "--media_dir", output_media_dir, filename, scene, ]
+            command = ["manim", "-ql", "--media_dir", output_media_dir, filename, scene, ]
             process = subprocess.run(
                 command,
                 text=True,
@@ -90,45 +92,61 @@ def run_manim_multiscene(code: str,  console: Console, output_media_dir: str = "
                 overall_success = False
                 console.print(f"[red]Error running scene {scene}[/red]")
 
-    # After all scenes are run, walk media directory for images
+    # After all scenes are run, extract best frames from scene videos
     frames_base64 = []
-    base_path = os.path.join(output_media_dir, "images", os.path.splitext(os.path.basename(filename))[0])
+    video_base_path = os.path.join(output_media_dir, "videos", "video", "480p15")
     
-    if os.path.exists(base_path):
-        with console.status("[bold blue]Processing rendered frames..."):
-            for root, dirs, files in os.walk(base_path):
-                for file in files:
-                    if file.endswith(".png"):
-                        frame_path = os.path.join(root, file)
-                        try:
-                            with open(frame_path, "rb") as image_file:
-                                image_data = image_file.read()
-                            # Encode the image data in Base64 and format as data URL
-                            image_base64 = base64.b64encode(image_data).decode('utf-8')
+    if os.path.exists(video_base_path):
+        with console.status("[bold blue]Extracting best frames from scene videos..."):
+            for scene in scene_names:
+                scene_video_path = os.path.join(video_base_path, f"{scene}.mp4")
+                if os.path.exists(scene_video_path):
+                    try:
+                        # Extract the frame with highest pixel density
+                        best_frame = extract_frame_with_highest_density(scene_video_path)
+                        if best_frame is not None:
+                            # Encode the frame as Base64
+                            _, buffer = cv2.imencode('.png', best_frame)
+                            image_base64 = base64.b64encode(buffer).decode('utf-8')
                             data_url = f"data:image/png;base64,{image_base64}"
                             frames_base64.append(data_url)
-                        except Exception as e:
-                            overall_success = False
-                            console.print(f"[red]Error reading/encoding frame {frame_path}: {e}[/red]")
+                    except Exception as e:
+                        overall_success = False
+                        console.print(f"[red]Error extracting frame from {scene_video_path}: {e}[/red]")
+                else:
+                    overall_success = False
+                    console.print(f"[red]Video file not found for scene {scene} at {scene_video_path}[/red]")
         
-        # Copy frames to step directory if step_name and artifact_manager are provided
-        if step_name and artifact_manager:
+        # Save extracted frames to step directory if step_name and artifact_manager are provided
+        if step_name and artifact_manager and frames_base64:
             step_frames_dir = artifact_manager.get_step_frames_path(step_name)
+            os.makedirs(step_frames_dir, exist_ok=True)
             
-            # Copy all PNG files to the step frames directory
-            for root, dirs, files in os.walk(base_path):
-                for file in files:
-                    if file.endswith(".png"):
-                        src_path = os.path.join(root, file)
-                        # Create subdirectory structure in step frames
-                        rel_path = os.path.relpath(root, base_path)
-                        dest_dir = os.path.join(step_frames_dir, rel_path) if rel_path != "." else step_frames_dir
-                        os.makedirs(dest_dir, exist_ok=True)
-                        dest_path = os.path.join(dest_dir, file)
-                        shutil.copy2(src_path, dest_path)
+            # Save each extracted frame
+            for i, data_url in enumerate(frames_base64):
+                # Extract base64 data from data URL
+                base64_data = data_url.split(',')[1]
+                image_data = base64.b64decode(base64_data)
+                
+                frame_filename = f"best_frame_{i+1}.png"
+                frame_path = os.path.join(step_frames_dir, frame_filename)
+                
+                with open(frame_path, 'wb') as f:
+                    f.write(image_data)
+        
+        # Clean up video files after extracting frames to prevent old videos 
+        # from previous iterations affecting scene counting
+        with console.status("[bold blue]Cleaning up video files..."):
+            for scene in scene_names:
+                scene_video_path = os.path.join(video_base_path, f"{scene}.mp4")
+                if os.path.exists(scene_video_path):
+                    try:
+                        os.remove(scene_video_path)
+                    except Exception as e:
+                        console.print(f"[yellow]Warning: Could not delete {scene_video_path}: {e}[/yellow]")
     else:
         overall_success = False
-        console.print(f"[red]Media directory not found at {base_path}[/red]")
+        console.print(f"[red]Video directory not found at {video_base_path}[/red]")
     
     return overall_success, frames_base64, combined_logs
 
@@ -179,6 +197,58 @@ def calculate_scene_success_rate(frames: list, scene_names: list[str] | Exceptio
     
     success_rate = (scenes_rendered / total_scenes) * 100
     return success_rate, scenes_rendered, total_scenes
+
+def extract_frame_with_highest_density(video_path: str, max_frames: int = 30) -> np.ndarray | None:
+    """
+    Extract the frame with the highest non-black pixel density from a video.
+    
+    Args:
+        video_path: Path to the video file
+        max_frames: Maximum number of frames to sample for performance
+    
+    Returns:
+        numpy.ndarray: The frame with highest pixel density, or None if error
+    """
+    try:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            return None
+        
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if total_frames == 0:
+            return None
+        
+        # Sample frames evenly throughout the video
+        frame_indices = np.linspace(0, total_frames - 1, min(max_frames, total_frames), dtype=int)
+        
+        best_frame = None
+        best_density = 0
+        
+        for frame_idx in frame_indices:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+            ret, frame = cap.read()
+            
+            if not ret:
+                continue
+            
+            # Calculate non-black pixel density
+            # Consider a pixel non-black if any channel > threshold
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            non_black_pixels = np.sum(gray > 30)  # Threshold for "black"
+            total_pixels = gray.shape[0] * gray.shape[1]
+            density = non_black_pixels / total_pixels
+            
+            if density > best_density:
+                best_density = density
+                best_frame = frame.copy()
+        
+        cap.release()
+        return best_frame
+        
+    except Exception as e:
+        logger.exception(f"Error extracting frame from {video_path}: {e}")
+        return None
+
 
 def parse_code_block(text: str) -> str | None:
     """

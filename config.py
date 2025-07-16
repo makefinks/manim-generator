@@ -6,14 +6,14 @@ from litellm import supports_vision
 
 # Default configuration
 DEFAULT_CONFIG = {
-    "manim_model": "anthropic/claude-sonnet-4",
-    "review_model": "anthropic/claude-sonnet-4",
+    "manim_model": "openrouter/anthropic/claude-sonnet-4",
+    "review_model": "openrouter/anthropic/claude-sonnet-4",
     "review_cycles": 5,
     "output_dir": f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
     "manim_logs": False,
     "streaming": False,
     "temperature": 0.4,
-    "success_threshold": 80.0,
+    "success_threshold": 100,
     "reasoning_effort": "high",
 }
 
@@ -149,10 +149,15 @@ class Config:
 
     def _build_config(self, args) -> dict:
         """Build configuration dictionary from parsed arguments."""
-        # Check if the model supports vision/images
-        vision_enabled = supports_vision(model=args.review_model) or args.force_vision
+        # Check if both models support vision/images
+        main_vision_support = supports_vision(model=args.manim_model) or args.force_vision
+        review_vision_support = supports_vision(model=args.review_model) or args.force_vision
+        vision_enabled = main_vision_support and review_vision_support
+        
+        self.console.print(f"[bold {'green' if main_vision_support else 'yellow'}]Main model vision support: {'Enabled' if main_vision_support else 'Disabled'}[/bold {'green' if main_vision_support else 'yellow'}]")
+        self.console.print(f"[bold {'green' if review_vision_support else 'yellow'}]Review model vision support: {'Enabled' if review_vision_support else 'Disabled'}[/bold {'green' if review_vision_support else 'yellow'}]")
         self.console.print(
-            f"[bold {'green' if vision_enabled else 'yellow'}]Vision support: {'Enabled' if vision_enabled else 'Disabled'}[/bold {'green' if vision_enabled else 'yellow'}]"
+            f"[bold {'green' if vision_enabled else 'yellow'}]Combined vision support: {'Enabled' if vision_enabled else 'Disabled'}[/bold {'green' if vision_enabled else 'yellow'}]"
         )
 
         # Build reasoning config
