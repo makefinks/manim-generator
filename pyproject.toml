@@ -9,5 +9,6 @@ dependencies = [
     "litellm>=1.59.8",
     "manim>=0.17.0",
     "opencv-python>=4.11.0.86",
+    "ruff>=0.12.5",
     "setuptools>=79.0.0",
 ]

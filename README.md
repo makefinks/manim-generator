@@ -107,7 +107,7 @@ The script supports the following command-line arguments:
 
 ### Example with specific models and video data:
 ```bash
-python manim_generator.py --video_data "Explain the concept of neural networks with visual examples" --manim_model "openrouter/anthropic/claude-3.5-sonnet" --review_model "openrouter/anthropic/claude-3.5-sonnet" --review_cycles 3
+python manim_generator.py --video_data "Explain the concept of neural networks with visual examples" --manim_model "openrouter/anthropic/claude-sonnet-4" --review_model "openrouter/anthropic/claude-sonnet-4" --review_cycles 3
 ```
 
 ### 3. Tweak the config

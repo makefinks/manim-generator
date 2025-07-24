@@ -180,7 +180,6 @@ class Config:
         vision_enabled = main_vision_support and review_vision_support
         
         # Display vision support as a table
-        from rich.table import Table
         table = Table(title="Vision Support Check")
         table.add_column("Component", style="cyan")
         table.add_column("Status", style="bold")
