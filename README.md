@@ -71,6 +71,13 @@ Either by creating a `.env` file or by defining the API key of your preferred pr
 ```bash
 python manim_generator.py
 ```
+
+### Example with specific models and video data:
+```bash
+python manim_generator.py --video_data "Explain the concept of neural networks with visual examples" --manim_model "openrouter/anthropic/claude-3.5-sonnet" --review_model "openrouter/anthropic/claude-3.5-sonnet" --review_cycles 3
+```
+
+
 ### 3. Tweak the config
 Manually configure what llm the coder and reviewer should use inside `manim_generator.py`.
 

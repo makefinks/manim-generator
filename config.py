@@ -2,19 +2,20 @@ from datetime import datetime
 import argparse
 import os
 from rich.console import Console
-from litellm import supports_vision
+from rich.table import Table
+from litellm import supports_vision, completion
 
 # Default configuration
 DEFAULT_CONFIG = {
     "manim_model": "openrouter/anthropic/claude-sonnet-4",
     "review_model": "openrouter/anthropic/claude-sonnet-4",
     "review_cycles": 5,
-    "output_dir": f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
     "manim_logs": False,
     "streaming": False,
     "temperature": 0.4,
     "success_threshold": 100,
     "reasoning_effort": "high",
+    "output_dir": "output",
 }
 
 
@@ -149,16 +150,45 @@ class Config:
 
     def _build_config(self, args) -> dict:
         """Build configuration dictionary from parsed arguments."""
+
+        video_data = args.video_data
+        if not video_data and args.video_data_file:
+            try:
+                with open(args.video_data_file, 'r') as f:
+                    video_data = f.read().strip()
+            except FileNotFoundError:
+                self.console.print(f"[bold red]Error: Video data file '{args.video_data_file}' not found.[/bold red]")
+                exit(1)
+            except Exception as e:
+                self.console.print(f"[bold red]Error reading video data file: {e}[/bold red]")
+                exit(1)
+
+        short_file_desc = "manim_animation"
+        if video_data:
+            try:
+                response = completion(
+                    model=args.manim_model,
+                    max_tokens=10,
+                    messages=[{"content": f"Generate a max 4 word file descriptor for this content, no suffix, underscores instead of spaces. Answer with nothing else!: \n {video_data}", "role": "user"}],
+                )
+                short_file_desc = response.choices[0].message.content.strip().replace(" ", "_")
+            except Exception as e:
+                self.console.print(f"[bold yellow]Warning: Could not generate file descriptor: {e}. Using default.[/bold yellow]")
+
         # Check if both models support vision/images
         main_vision_support = supports_vision(model=args.manim_model) or args.force_vision
         review_vision_support = supports_vision(model=args.review_model) or args.force_vision
         vision_enabled = main_vision_support and review_vision_support
         
-        self.console.print(f"[bold {'green' if main_vision_support else 'yellow'}]Main model vision support: {'Enabled' if main_vision_support else 'Disabled'}[/bold {'green' if main_vision_support else 'yellow'}]")
-        self.console.print(f"[bold {'green' if review_vision_support else 'yellow'}]Review model vision support: {'Enabled' if review_vision_support else 'Disabled'}[/bold {'green' if review_vision_support else 'yellow'}]")
-        self.console.print(
-            f"[bold {'green' if vision_enabled else 'yellow'}]Combined vision support: {'Enabled' if vision_enabled else 'Disabled'}[/bold {'green' if vision_enabled else 'yellow'}]"
-        )
+        # Display vision support as a table
+        from rich.table import Table
+        table = Table(title="Vision Support Check")
+        table.add_column("Component", style="cyan")
+        table.add_column("Status", style="bold")
+        table.add_row("Main Model", f"[{'green' if main_vision_support else 'yellow'}]{'Enabled' if main_vision_support else 'Disabled'}[/{'green' if main_vision_support else 'yellow'}]")
+        table.add_row("Review Model", f"[{'green' if review_vision_support else 'yellow'}]{'Enabled' if review_vision_support else 'Disabled'}[/{'green' if review_vision_support else 'yellow'}]")
+        table.add_row("Combined", f"[{'green' if vision_enabled else 'yellow'}]{'Enabled' if vision_enabled else 'Disabled'}[/{'green' if vision_enabled else 'yellow'}]")
+        self.console.print(table)
 
         # Build reasoning config
         reasoning_config = {}
@@ -174,7 +204,7 @@ class Config:
             "manim_model": args.manim_model,
             "review_model": args.review_model,
             "review_cycles": args.review_cycles,
-            "output_dir": args.output_dir,
+            "output_dir": f"{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             "manim_logs": args.manim_logs,
             "streaming": args.streaming,
             "temperature": args.temperature,

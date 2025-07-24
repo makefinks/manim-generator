@@ -1,57 +1,50 @@
 """Utility functions for preserving workflow artifacts and debugging information."""
 import os
 import shutil
-from typing import List, Optional
+from typing import Optional
 from rich.console import Console
 
 
 class ArtifactManager:
     """Manages preservation of workflow artifacts for debugging and analysis."""
-    
+
     def __init__(self, output_dir: str, console: Console):
         self.output_dir = output_dir
         self.console = console
         self.steps_dir = os.path.join(output_dir, "steps")
         os.makedirs(self.steps_dir, exist_ok=True)
     
+    def _write_file(self, directory: str, filename: str, content: Optional[str]) -> None:
+        """Write content to a file if content is provided."""
+        if content:
+            with open(os.path.join(directory, filename), "w", encoding="utf-8") as f:
+                f.write(content)
+    
     def save_step_artifacts(
         self, 
         step_name: str, 
-        code: str | None = None, 
-        prompt: str | None = None, 
-        logs: str | None = None, 
-        frames_dir: str | None = None,
-        review_text: str | None  = None,
-        reasoning: str | None  = None
+        code: Optional[str] = None, 
+        prompt: Optional[str] = None, 
+        logs: Optional[str] = None, 
+        frames_dir: Optional[str] = None,
+        review_text: Optional[str] = None,
+        reasoning: Optional[str] = None
     ) -> str:
         """Save all artifacts for a workflow step."""
         step_dir = os.path.join(self.steps_dir, step_name)
         os.makedirs(step_dir, exist_ok=True)
         
-        # Save code
-        if code:
-            with open(os.path.join(step_dir, "code.py"), "w", encoding="utf-8") as f:
-                f.write(code)
+        file_mappings = {
+            "code.py": code,
+            "prompt.txt": prompt,
+            "logs.txt": logs,
+            "review.md": review_text,
+            "reasoning.txt": reasoning
+        }
         
-        # Save prompt
-        if prompt:
-            with open(os.path.join(step_dir, "prompt.txt"), "w", encoding="utf-8") as f:
-                f.write(prompt)
-        
-        # Save logs
-        if logs:
-            with open(os.path.join(step_dir, "logs.txt"), "w", encoding="utf-8") as f:
-                f.write(logs)
-        
-        # Save review text
-        if review_text:
-            with open(os.path.join(step_dir, "review.md"), "w", encoding="utf-8") as f:
-                f.write(review_text)
-        
-        # Save reasoning
-        if reasoning:
-            with open(os.path.join(step_dir, "reasoning.txt"), "w", encoding="utf-8") as f:
-                f.write(reasoning)
+        # Save all files 
+        for filename, content in file_mappings.items():
+            self._write_file(step_dir, filename, content)
         
         # Copy frames if they exist
         if frames_dir and os.path.exists(frames_dir):

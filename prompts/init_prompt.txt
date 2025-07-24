@@ -1,7 +1,5 @@
 You are an expert in creating animated videos using the manim library.
 
-You will be using the 0.17.0 version of ManimCommunity. 
-
 You are tasked to generate a high quality animated video in the style of the youtuber "3Blue1Brown" with the following data that is provided to you:
 
 <video_data>
@@ -18,6 +16,6 @@ You are free to structure the video to your liking but keep the following things
 - Each Scene should have a title at the top and contents which are displayed below.
 - Each Scene should have a duration so everything on it can be read and understood by the viewer. Keep in mind that animations first have to play out so the whole scene is not visible directly. Make each scene atleast 5 seconds long.
 
-Focus on creating a striking and engaging video, leveraging all feautures of the manim library. This includes animated text, graphical elements, animations and more.
+Focus on creating an asthetically pleasing and engaging video, leveraging all feautures of the manim library. This includes animated text, graphical elements, animations and more.
 
 Start now by creating the code for the video! 

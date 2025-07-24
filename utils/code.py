@@ -3,7 +3,6 @@ import base64
 import logging
 import os
 import re
-import shutil
 import subprocess
 from rich.console import Console
 import ast

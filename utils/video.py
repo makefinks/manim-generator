@@ -51,7 +51,7 @@ def render_and_concat(script_file: str, output_media_dir: str, final_output: str
     with open(script_file, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    scene_names = extract_scene_class_names(content)
+    scene_names = extract_scene_class_names(content)
     
     logger.info("Found scene names in order: %s", scene_names)
     
