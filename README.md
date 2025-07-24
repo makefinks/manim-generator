@@ -66,17 +66,49 @@ Either by creating a `.env` file or by defining the API key of your preferred pr
 > Recommendation: use [openrouter](https://openrouter.ai/) to access all llms 
 
 ## ⚡ Usage
-### 1. Input any data you want to have visualised as a video into `video_data.txt`
-### 2. Execute the script
+### 1. Execute the script
 ```bash
 python manim_generator.py
 ```
+
+### 2. CLI Arguments
+The script supports the following command-line arguments:
+
+#### Video Data Input
+| Argument | Description | Default |
+|---------|-------------|---------|
+| `--video_data` | Description of the video to generate (text string) | - |
+| `--video_data_file` | Path to file containing video description | "video_data.txt" |
+
+#### Model Configuration
+| Argument | Description | Default |
+|---------|-------------|---------|
+| `--manim_model` | Model to use for generating Manim code | "openrouter/anthropic/claude-sonnet-4" |
+| `--review_model` | Model to use for reviewing code | "openrouter/anthropic/claude-sonnet-4" |
+| `--streaming` | Enable streaming responses from the model | False |
+| `--temperature` | Temperature for the LLM Model | 0.4 |
+| `--force_vision` | Adds images to the review process, regardless if LiteLLM reports vision is not supported | - |
+| `--provider` | Specific provider to use for OpenRouter requests (e.g., 'anthropic', 'openai') | - |
+#### Process Configuration
+| Argument | Description | Default |
+|---------|-------------|---------|
+| `--review_cycles` | Number of review cycles to perform | 5 |
+| `--manim_logs` | Show Manim execution logs | False |
+| `--success_threshold` | Percentage of scenes that must render successfully to trigger enhanced visual review mode | 100 |
+
+#### Reasoning Tokens Configuration
+| Argument | Description | Default |
+|---------|-------------|---------|
+| `--reasoning_effort` | Reasoning effort level for OpenAI-style models (choices: "low", "medium", "high") | "high" |
+| `--reasoning_max_tokens` | Maximum tokens for reasoning (Anthropic-style) | - |
+| `--reasoning_exclude` | Exclude reasoning tokens from response (model still uses reasoning internally) | - |
+
+> Note: You cannot use both `--reasoning_effort` and `--reasoning_max_tokens` at the same time.
 
 ### Example with specific models and video data:
 ```bash
 python manim_generator.py --video_data "Explain the concept of neural networks with visual examples" --manim_model "openrouter/anthropic/claude-3.5-sonnet" --review_model "openrouter/anthropic/claude-3.5-sonnet" --review_cycles 3
 ```
-
 
 ### 3. Tweak the config
 Manually configure what llm the coder and reviewer should use inside `manim_generator.py`.
@@ -85,7 +117,6 @@ Images will only be used if the reviewer model supports image inputs.
 ####  Check compatibility:
 - https://openrouter.ai/models?modality=text+image-%3Etext
 - https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json (can be tweaked manually if necessary)
-
 
 
 ## 🤝 Contributing
@@ -97,20 +128,5 @@ Contributions are welcome!
 - Adding / Proposing new features or optimizations
 
 ### Known Issues:
-- **Streaming**: current implementation performs no syntax highlighting and leaves artifacts in the console history when scrolling
+- **Streaming**: current streaming implementation is broken, contains lots of flickering and leaves artifacts in scroll history.
 - **Prompting / Environment Setup**: There may be a mismatch of what version the llm chooses to use and what is currently installed on the system. 
-
-## Observations:
-
-### LLMs
-- Claude 3.7 Sonnet creates unique and stable scenes, allocating extra thinking budget increases the complexity of the visualisations but introduces visual errors or invalid use of the manim api
-- o3-mini seems to be the most reliable coder but does not create the most impressive scenes - more testing is neeeded (also no image inputs yet)
-- Claude 3.5 Sonnet V2 performs very well as the reviewer and coder - to no ones suprise ;)
-- Deepseek R1 sometimes creates more impressive compositions but code often has syntax errors
-- Gemini 2.0 Flash struggles creating runnable scripts without additional prompting
-
-### Flow
-- In the original flow the llm was instructed to only output one class (Manim Scene) so that it was easier to render the video with one command. Now each scene is its own class. This was done so I could extract the `--last-frame` for each scene and pass it to the review model. There might be a better way to do this!
-
-## 🎬 Examples
-You can find example videos in the [examples](examples/) directory.
