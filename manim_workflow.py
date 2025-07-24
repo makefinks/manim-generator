@@ -103,7 +103,9 @@ class ManimWorkflow:
             )
         
         code = parse_code_block(response)
-        print_code_with_syntax(code, self.console, "Generated Initial Manim Code")
+        
+        if not self.config["streaming"]:
+            print_code_with_syntax(code, self.console, "Generated Initial Manim Code")
         
         # Save initial generation artifacts
         prompt_content = format_prompt("init_prompt", {"video_data": video_data})
@@ -375,9 +377,12 @@ class ManimWorkflow:
         self.usage_tracker.add_step(f"Code Revision {cycle_num}", self.config["manim_model"], usage_info)
         
         revised_code = parse_code_block(revised_response)
-        print_code_with_syntax(
-            revised_code, self.console, f"Revised Code - Cycle {cycle_num}"
-        )
+        
+        # Only display code block if not streaming
+        if not self.config["streaming"]:
+            print_code_with_syntax(
+                revised_code, self.console, f"Revised Code - Cycle {cycle_num}"
+            )
         
         # Save revision artifacts
         revision_prompt = f"Here is the current code:\n\n```python\n{current_code}\n```\n\nHere is some feedback on your code:\n\n<review>\n{review}\n</review>\n\nPlease implement the suggestions and respond with the whole script. Do not leave anything out."
@@ -394,6 +399,7 @@ class ManimWorkflow:
         """Handle final output, saving, and rendering."""
         if working_code:
             self.console.rule("[bold green]Final Result", style="green")
+            
             print_code_with_syntax(working_code, self.console, "Final Manim Code")
             
             saved_file = save_code_to_file(
