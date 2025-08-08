@@ -13,28 +13,28 @@ from utils.llm import get_completion_with_retry, get_streaming_completion_with_r
 
 def prettier_code_blocks():
     """Make rich code blocks prettier and easier to copy.
-    
+
     From https://github.com/samuelcolvin/aicli/blob/v0.8.0/samuelcolvin_aicli.py#L22
     """
-    
+
     class SimpleCodeBlock(CodeBlock):
         def __rich_console__(
             self, console: Console, options: ConsoleOptions
         ) -> RenderResult:
             code = str(self.text).rstrip()
-            yield Text(self.lexer_name, style='dim')
+            yield Text(self.lexer_name, style="dim")
             # Use a dark background similar to the non-streaming Panel display
             yield Syntax(
                 code,
                 self.lexer_name,
-                theme='monokai',
-                background_color='#1e1e1e',  # Dark background to match Panel style
+                theme="monokai",
+                background_color="#1e1e1e",  # Dark background to match Panel style
                 word_wrap=True,
                 line_numbers=True,
             )
-            yield Text(f'/{self.lexer_name}', style='dim')
-    
-    Markdown.elements['fence'] = SimpleCodeBlock
+            yield Text(f"/{self.lexer_name}", style="dim")
+
+    Markdown.elements["fence"] = SimpleCodeBlock
 
 
 def get_response_with_status(
@@ -46,38 +46,34 @@ def get_response_with_status(
     console: Console,
     reasoning: dict | None = None,
     provider: str | None = None,
-) -> tuple[str, Dict[str, Any], str]:
+) -> tuple[str, Dict[str, Any], str | None]:
     """Gets a response from the model, handling streaming if enabled.
 
     Returns:
-        tuple[str, Dict[str, Any]]: Response text and usage information
+        tuple[str, Dict[str, Any], str | None]: Response text, usage information, and optional reasoning content
     """
     start_time = time.time()
 
     if streaming:
         prettier_code_blocks()
-        stream_gen_args = {
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "console": console,
-        }
-        if reasoning is not None:
-            stream_gen_args["reasoning"] = reasoning
-        if provider is not None:
-            stream_gen_args["provider"] = provider
-
-        stream_gen = get_streaming_completion_with_retry(**stream_gen_args)
-        usage_info = {}
+        stream_gen = get_streaming_completion_with_retry(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            console=console,
+            reasoning=reasoning,
+            provider=provider,
+        )
+        usage_info: Dict[str, Any] = {}
         full_response = ""
-        
-        with Live('', console=console, vertical_overflow='visible') as live:
+
+        with Live("", console=console, vertical_overflow="visible") as live:
             for token, response, usage in stream_gen:
-                if token:  
+                if token:
                     full_response = response
                     live.update(Markdown(full_response))
-                usage_info = usage  
-        
+                usage_info = usage
+
         response_text = full_response
     else:
         with Progress(
@@ -92,20 +88,14 @@ def get_response_with_status(
                 else status,
                 total=None,
             )
-            completion_args = {
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "console": console,
-            }
-
-            if reasoning is not None:
-                completion_args["reasoning"] = reasoning
-            if provider is not None:
-                completion_args["provider"] = provider
 
             response_text, usage_info, reasoning_content = get_completion_with_retry(
-                **completion_args
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                console=console,
+                reasoning=reasoning,
+                provider=provider,
             )
             progress.update(task, completed=True)
 

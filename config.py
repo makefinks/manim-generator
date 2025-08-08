@@ -15,6 +15,7 @@ DEFAULT_CONFIG = {
     "temperature": 0.4,
     "success_threshold": 100,
     "reasoning_effort": "high",
+    "output_dir": "output"
 }
 
 

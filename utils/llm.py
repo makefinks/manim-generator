@@ -13,6 +13,7 @@ from rich.prompt import Prompt
 # for safety drop unsupported params
 litellm.drop_params = True
 
+
 def check_and_register_models(models: list[str], console: Console) -> None:
     """
     Checks if models are registered in the LiteLLM cost map.
@@ -78,6 +79,36 @@ def check_and_register_models(models: list[str], console: Console) -> None:
                 )
 
 
+def _build_litellm_args(
+    *,
+    model: str,
+    messages: list[dict],
+    temperature: float,
+    stream: bool,
+    reasoning: dict | None,
+    provider: str | None,
+) -> Dict[str, Any]:
+    """Builds a standardized argument dict for litellm.completion.
+
+    Centralizes optional reasoning/provider handling to avoid duplication.
+    """
+    args: Dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "stream": stream,
+    }
+    if reasoning is not None:
+        if model.startswith("openai/"):
+        # HACK: only use reasoning effort when using openai API directly, reasoning dict does not work
+            args["reasoning_effort"] = reasoning["effort"]
+        else:
+            args["reasoning"] = reasoning
+    if provider is not None:
+        args["provider"] = {"order": [provider]}
+    return args
+
+
 def get_completion_with_retry(
     model: str,
     messages: list[dict],
@@ -111,18 +142,15 @@ def get_completion_with_retry(
     retries = 0
     while retries < max_retries:
         try:
-            completion_args = {
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "stream": False,
-            }
+            completion_args = _build_litellm_args(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                stream=False,
+                reasoning=reasoning,
+                provider=provider,
+            )
 
-            if reasoning is not None:
-                completion_args["reasoning"] = reasoning
-            
-            if provider is not None:
-                completion_args["provider"] = {"order": [provider]}
 
             response = completion(**completion_args)
             response_content = response["choices"][0]["message"]["content"]
@@ -219,18 +247,14 @@ def get_streaming_completion_with_retry(
     retries = 0
     while retries < max_retries:
         try:
-            completion_args = {
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "stream": True,
-            }
-
-            if reasoning is not None:
-                completion_args["reasoning"] = reasoning
-            
-            if provider is not None:
-                completion_args["provider"] = {"order": [provider]}
+            completion_args = _build_litellm_args(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                stream=True,
+                reasoning=reasoning,
+                provider=provider,
+            )
 
             response = completion(**completion_args)
             full_response = ""
