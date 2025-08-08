@@ -84,23 +84,26 @@ def get_completion_with_retry(
     temperature: float,
     console: Console,
     max_retries: int = 5,
-    reasoning: dict = None,
-    provider: str = None,
-) -> tuple[str, Dict[str, Any]]:
+    reasoning: dict | None = None,
+    provider: str | None = None,
+) -> tuple[str, Dict[str, Any], str | None]:
     """
     Makes a non-streaming LLM completion request with automatic retry on rate limit errors.
 
     Args:
         model (str): The name of the model to use for completion.
         messages (list[dict]): List of message dictionaries for the conversation.
-        temperature (int): Temperature parameter.
+        temperature (float): Temperature parameter.
         console (Console): Rich console instance for logging.
         max_retries (int, optional): Maximum number of retry attempts. Defaults to 5.
+        reasoning (dict | None, optional): Reasoning parameters. Defaults to None.
+        provider (str | None, optional): Provider to use. Defaults to None.
 
     Returns:
-        tuple[str, Dict[str, Any]]: A tuple containing:
+        tuple[str, Dict[str, Any], str | None]: A tuple containing:
             - The generated completion text from the model
             - Usage information including tokens and cost
+            - Reasoning content if available, otherwise None
 
     Raises:
         Exception: If max retries are exceeded and still getting rate limited.
@@ -189,8 +192,8 @@ def get_streaming_completion_with_retry(
     temperature: float,
     console: Console,
     max_retries: int = 5,
-    reasoning: dict = None,
-    provider: str = None,
+    reasoning: dict | None = None,
+    provider: str | None = None,
 ) -> Generator[tuple[str, str, Dict[str, Any]], None, None]:
     """
     Makes a streaming LLM completion request with automatic retry on rate limit errors.
@@ -198,9 +201,11 @@ def get_streaming_completion_with_retry(
     Args:
         model (str): The name of the model to use for completion.
         messages (list[dict]): List of message dictionaries for the conversation.
-        temperature (int): Temperature parameter.
+        temperature (float): Temperature parameter.
         console (Console): Rich console instance for logging.
         max_retries (int, optional): Maximum number of retry attempts. Defaults to 5.
+        reasoning (dict, optional): Reasoning parameters. Defaults to None.
+        provider (str, optional): Provider to use. Defaults to None.
 
     Yields:
         tuple[str, str, Dict[str, Any]]: A tuple containing:

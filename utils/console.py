@@ -44,9 +44,9 @@ def get_response_with_status(
     streaming: bool,
     status: str | None,
     console: Console,
-    reasoning: dict = None,
-    provider: str = None,
-) -> tuple[str, Dict[str, Any]]:
+    reasoning: dict | None = None,
+    provider: str | None = None,
+) -> tuple[str, Dict[str, Any], str]:
     """Gets a response from the model, handling streaming if enabled.
 
     Returns:
@@ -98,6 +98,7 @@ def get_response_with_status(
                 "temperature": temperature,
                 "console": console,
             }
+
             if reasoning is not None:
                 completion_args["reasoning"] = reasoning
             if provider is not None:

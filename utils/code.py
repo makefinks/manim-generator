@@ -9,7 +9,7 @@ import ast
 import cv2
 import numpy as np
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 def save_code_to_file(code: str, filename: str = "video.py") -> str:
     """
