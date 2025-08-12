@@ -116,6 +116,8 @@ class ManimWorkflow:
             self.config["output_dir"],
             step_name.lower().replace(" ", "_"),
             self.artifact_manager,
+            self.config.get("frame_extraction_mode", "fixed_count"),
+            self.config.get("frame_count", 3),
         )
 
         self._display_execution_status(success, frames, code, logs)
@@ -138,7 +140,7 @@ class ManimWorkflow:
         status_color = "green" if success else "red"
 
         scene_names = extract_scene_class_names(code)
-        scenes_rendered = f"{len(frames)} of {len(scene_names) if isinstance(scene_names, list) else '? (Syntax error)'}"
+        scenes_rendered = f"{int(len(frames) / self.config['frame_count'])} of {len(scene_names) if isinstance(scene_names, list) else '? (Syntax error)'}"
 
         self.console.print(
             f"[bold {status_color}]Execution Status: {'Success' if success else 'Failed'}[/bold {status_color}]"
@@ -239,7 +241,7 @@ class ManimWorkflow:
         # success rate determines review prompt
         scene_names = extract_scene_class_names(code)
         success_rate, scenes_rendered, total_scenes = calculate_scene_success_rate(
-            frames, scene_names
+            frames, scene_names, self.config["frame_count"] 
         )
 
         # check if we can use visual enhance review prompt

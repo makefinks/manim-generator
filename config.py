@@ -15,7 +15,9 @@ DEFAULT_CONFIG = {
     "temperature": 0.4,
     "success_threshold": 100,
     "reasoning_effort": "high",
-    "output_dir": "output"
+    "output_dir": "output",
+    "frame_extraction_mode": "fixed_count",
+    "frame_count": 3,
 }
 
 
@@ -117,8 +119,8 @@ class Config:
             "--reasoning_effort",
             type=str,
             default=DEFAULT_CONFIG["reasoning_effort"],
-            choices=["low", "medium", "high"],
-            help="Reasoning effort level for OpenAI-style models (low/medium/high)",
+            choices=["minimal", "low", "medium", "high"],
+            help="Reasoning effort level for OpenAI-style models (minimal/low/medium/high). Note: Minimal is only to be used with GPT-5",
         )
         parser.add_argument(
             "--reasoning_max_tokens",
@@ -137,6 +139,19 @@ class Config:
             default=DEFAULT_CONFIG["success_threshold"],
             help="Percentage of scenes that must render successfully to trigger enhanced visual review mode (focuses on creative improvements instead of technical fixes)",
         )
+        parser.add_argument(
+            "--frame_extraction_mode",
+            type=str,
+            default=DEFAULT_CONFIG["frame_extraction_mode"],
+            choices=["highest_density", "fixed_count"],
+            help="Frame extraction mode: highest_density (single best frame) or fixed_count (multiple frames)",
+        )
+        parser.add_argument(
+            "--frame_count",
+            type=int,
+            default=DEFAULT_CONFIG["frame_count"],
+            help="Number of frames to extract when using fixed_count mode",
+        )
 
         return parser
 
@@ -154,13 +169,17 @@ class Config:
         video_data = args.video_data
         if not video_data and args.video_data_file:
             try:
-                with open(args.video_data_file, 'r') as f:
+                with open(args.video_data_file, "r") as f:
                     video_data = f.read().strip()
             except FileNotFoundError:
-                self.console.print(f"[bold red]Error: Video data file '{args.video_data_file}' not found.[/bold red]")
+                self.console.print(
+                    f"[bold red]Error: Video data file '{args.video_data_file}' not found.[/bold red]"
+                )
                 exit(1)
             except Exception as e:
-                self.console.print(f"[bold red]Error reading video data file: {e}[/bold red]")
+                self.console.print(
+                    f"[bold red]Error reading video data file: {e}[/bold red]"
+                )
                 exit(1)
 
         short_file_desc = "manim_animation"
@@ -168,25 +187,49 @@ class Config:
             try:
                 response = completion(
                     model=args.manim_model,
-                    max_tokens=20,
-                    messages=[{"content": f"Generate a max 4 word file descriptor for this content, no suffix, underscores instead of spaces. Answer with nothing else!: \n {video_data}", "role": "user"}],
+                    reasoning_effort="low",
+                    messages=[
+                        {
+                            "content": f"Generate a max 4 word file descriptor for this content, no suffix, underscores instead of spaces. Answer with nothing else!: \n {video_data}",
+                            "role": "user",
+                        }
+                    ],
                 )
-                short_file_desc = response.choices[0].message.content.strip().replace(" ", "_")
-            except Exception as e:
-                self.console.print(f"[bold yellow]Warning: Could not generate file descriptor: {e}. Using default.[/bold yellow]")
+                print(response.choices[0].message)
+                short_file_desc = response.choices[0].message.content
 
+            except Exception as e:
+                print(e)
+                self.console.print(
+                    f"[bold yellow]Warning: Could not generate file descriptor: {e}. Using default.[/bold yellow]"
+                )
+
+        print("File descriptor: " + short_file_desc)
         # Check if both models support vision/images
-        main_vision_support = supports_vision(model=args.manim_model) or args.force_vision
-        review_vision_support = supports_vision(model=args.review_model) or args.force_vision
+        main_vision_support = (
+            supports_vision(model=args.manim_model) or args.force_vision
+        )
+        review_vision_support = (
+            supports_vision(model=args.review_model) or args.force_vision
+        )
         vision_enabled = main_vision_support and review_vision_support
-        
+
         # Display vision support as a table
         table = Table(title="Vision Support Check")
         table.add_column("Component", style="cyan")
         table.add_column("Status", style="bold")
-        table.add_row("Main Model", f"[{'green' if main_vision_support else 'yellow'}]{'Enabled' if main_vision_support else 'Disabled'}[/{'green' if main_vision_support else 'yellow'}]")
-        table.add_row("Review Model", f"[{'green' if review_vision_support else 'yellow'}]{'Enabled' if review_vision_support else 'Disabled'}[/{'green' if review_vision_support else 'yellow'}]")
-        table.add_row("Combined", f"[{'green' if vision_enabled else 'yellow'}]{'Enabled' if vision_enabled else 'Disabled'}[/{'green' if vision_enabled else 'yellow'}]")
+        table.add_row(
+            "Main Model",
+            f"[{'green' if main_vision_support else 'yellow'}]{'Enabled' if main_vision_support else 'Disabled'}[/{'green' if main_vision_support else 'yellow'}]",
+        )
+        table.add_row(
+            "Review Model",
+            f"[{'green' if review_vision_support else 'yellow'}]{'Enabled' if review_vision_support else 'Disabled'}[/{'green' if review_vision_support else 'yellow'}]",
+        )
+        table.add_row(
+            "Combined",
+            f"[{'green' if vision_enabled else 'yellow'}]{'Enabled' if vision_enabled else 'Disabled'}[/{'green' if vision_enabled else 'yellow'}]",
+        )
         self.console.print(table)
 
         # Build reasoning config
@@ -211,4 +254,6 @@ class Config:
             "reasoning": reasoning_config if reasoning_config else None,
             "provider": args.provider,
             "success_threshold": args.success_threshold,
+            "frame_extraction_mode": args.frame_extraction_mode,
+            "frame_count": args.frame_count,
         }

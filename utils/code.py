@@ -48,17 +48,23 @@ def run_manim_multiscene(
     output_media_dir: str = "output",
     step_name: str | None = None,
     artifact_manager=None,
+    frame_extraction_mode: str = "fixed_count",
+    frame_count: int = 3,
 ) -> tuple[bool, list[str], str]:
     """
     Saves the code to a file, extracts scene names, and runs each scene individually.
-    After rendering, extracts a representative frame from each scene's video by
-    selecting the frame with the highest non-black pixel density and encodes it
-    as a Base64 data URL for use with vision-capable models.
+    After rendering, extracts representative frames from each scene's video using
+    the specified extraction mode and encodes them as Base64 data URLs for use
+    with vision-capable models.
 
     Args:
         code: String containing the Manim Python code to execute
         console: Rich Console instance for status updates and output
         output_media_dir: Directory to store rendered media files (defaults to "output")
+        step_name: Optional step name for artifact management
+        artifact_manager: Optional artifact manager instance
+        frame_extraction_mode: "highest_density" for single best frame, "fixed_count" for multiple frames
+        frame_count: Number of frames to extract in fixed_count mode
 
     Returns a tuple containing:
       - a boolean success flag (True only if all scenes rendered successfully and files were found),
@@ -133,25 +139,33 @@ def run_manim_multiscene(
             scene_video_path = os.path.join(video_base_path, f"{scene}.mp4")
             if os.path.exists(scene_video_path):
                 try:
-                    best_frame = extract_frame_with_highest_density(scene_video_path)
-                    if best_frame is not None:
-                        # encode to base64
-                        success, buffer = cv2.imencode(".png", best_frame)
-                        if success:
-                            image_base64 = base64.b64encode(buffer.tobytes()).decode(
-                                "utf-8"
-                            )
-                            data_url = f"data:image/png;base64,{image_base64}"
-                            frames.append((scene, data_url))
-                        else:
-                            overall_success = False
-                            console.print(
-                                f"[yellow]Failed to encode frame for {scene_video_path}[/yellow]"
-                            )
+                    extracted_frames = extract_frames_from_video(
+                        scene_video_path, frame_extraction_mode, frame_count
+                    )
+                    if extracted_frames:
+                        # encode all frames to base64
+                        for idx, frame in enumerate(extracted_frames):
+                            success, buffer = cv2.imencode(".png", frame)
+                            if success:
+                                image_base64 = base64.b64encode(
+                                    buffer.tobytes()
+                                ).decode("utf-8")
+                                data_url = f"data:image/png;base64,{image_base64}"
+                                frame_name = (
+                                    f"{scene}_{idx + 1}"
+                                    if len(extracted_frames) > 1
+                                    else scene
+                                )
+                                frames.append((frame_name, data_url))
+                            else:
+                                overall_success = False
+                                console.print(
+                                    f"[yellow]Failed to encode frame {idx + 1} for {scene_video_path}[/yellow]"
+                                )
                     else:
                         overall_success = False
                         console.print(
-                            f"[yellow]No suitable frame extracted from {scene_video_path}[/yellow]"
+                            f"[yellow]No suitable frames extracted from {scene_video_path}[/yellow]"
                         )
                 except Exception as e:
                     overall_success = False
@@ -224,7 +238,7 @@ def extract_scene_class_names(code: str) -> list[str] | Exception:
 
 
 def calculate_scene_success_rate(
-    frames: list, scene_names: list[str] | Exception
+    frames: list, scene_names: list[str] | Exception, frames_per_scene: int
 ) -> tuple[float, int, int]:
     """
     Calculate the success rate of scene rendering.
@@ -240,7 +254,7 @@ def calculate_scene_success_rate(
         return 0.0, 0, 0
 
     total_scenes = len(scene_names)
-    scenes_rendered = len(frames)
+    scenes_rendered = len(frames) / frames_per_scene
 
     if total_scenes == 0:
         return 0.0, 0, 0
@@ -249,18 +263,23 @@ def calculate_scene_success_rate(
     return success_rate, scenes_rendered, total_scenes
 
 
-def extract_frame_with_highest_density(
-    video_path: str, max_frames: int = 30
-) -> np.ndarray | None:
+def extract_frames_from_video(
+    video_path: str,
+    mode: str = "fixed_count",
+    frame_count: int = 3,
+    max_frames: int = 30,
+) -> list[np.ndarray] | None:
     """
-    Extract the frame with the highest non-black pixel density from a video.
+    Extract frames from a video using different strategies.
 
     Args:
         video_path: Path to the video file
-        max_frames: Maximum number of frames to sample for performance
+        mode: "highest_density" for single best frame, "fixed_count" for multiple frames
+        frame_count: Number of frames to extract in fixed_count mode
+        max_frames: Maximum number of frames to sample for performance in highest_density mode
 
     Returns:
-        numpy.ndarray: The frame with highest pixel density, or None if error
+        list of numpy.ndarray: The extracted frames, or None if error
     """
     try:
         cap = cv2.VideoCapture(video_path)
@@ -271,37 +290,59 @@ def extract_frame_with_highest_density(
         if total_frames == 0:
             return None
 
-        # Sample frames evenly throughout the video
-        frame_indices = np.linspace(
-            0, total_frames - 1, min(max_frames, total_frames), dtype=int
-        )
+        if mode == "highest_density":
+            # evenly sample frames
+            frame_indices = np.linspace(
+                0, total_frames - 1, min(max_frames, total_frames), dtype=int
+            )
 
-        best_frame = None
-        best_density = 0
+            best_frame = None
+            best_density = 0
 
-        for frame_idx in frame_indices:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-            ret, frame = cap.read()
+            for frame_idx in frame_indices:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+                ret, frame = cap.read()
 
-            if not ret:
-                continue
+                if not ret:
+                    continue
 
-            # Calculate non-black pixel density
-            # Consider a pixel non-black if any channel > threshold
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            non_black_pixels = np.sum(gray > 30)  # Threshold for "black"
-            total_pixels = gray.shape[0] * gray.shape[1]
-            density = non_black_pixels / total_pixels
+                # Calculate non-black pixel density
+                # Consider a pixel non-black if any channel > threshold
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                non_black_pixels = np.sum(gray > 30)  # Threshold for "black"
+                total_pixels = gray.shape[0] * gray.shape[1]
+                density = non_black_pixels / total_pixels
 
-            if density > best_density:
-                best_density = density
-                best_frame = frame.copy()
+                if density > best_density:
+                    best_density = density
+                    best_frame = frame.copy()
 
-        cap.release()
-        return best_frame
+            cap.release()
+            return [best_frame] if best_frame is not None else None
+
+        elif mode == "fixed_count":
+            # extract fixed count
+            frame_indices = np.linspace(
+                0, total_frames - 1, min(frame_count, total_frames), dtype=int
+            )
+
+            extracted_frames = []
+            for frame_idx in frame_indices:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+                ret, frame = cap.read()
+
+                if ret:
+                    extracted_frames.append(frame.copy())
+
+            cap.release()
+            return extracted_frames if extracted_frames else None
+
+        else:
+            cap.release()
+            return None
 
     except Exception as e:
-        logger.exception(f"Error extracting frame from {video_path}: {e}")
+        logger.exception(f"Error extracting frames from {video_path}: {e}")
         return None
 
 
