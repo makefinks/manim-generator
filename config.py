@@ -168,7 +168,7 @@ class Config:
             try:
                 response = completion(
                     model=args.manim_model,
-                    max_tokens=10,
+                    max_tokens=20,
                     messages=[{"content": f"Generate a max 4 word file descriptor for this content, no suffix, underscores instead of spaces. Answer with nothing else!: \n {video_data}", "role": "user"}],
                 )
                 short_file_desc = response.choices[0].message.content.strip().replace(" ", "_")

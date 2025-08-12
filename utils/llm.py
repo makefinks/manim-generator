@@ -2,7 +2,7 @@
 
 import re
 import time
-from typing import Generator, Dict, Any
+from collections.abc import Generator
 from litellm import completion, completion_cost, model_cost, register_model
 import litellm
 from openai import RateLimitError
@@ -29,26 +29,26 @@ def check_and_register_models(models: list[str], console: Console) -> None:
                 f"[yellow]Model '{model}' is not registered in the LiteLLM cost map.[/yellow]"
             )
 
-            # Ask for input costs
+            # ask for input cost
             input_cost_str = Prompt.ask(
                 f"[cyan]Input token cost for '{model}' per million tokens (e.g. 0.50) [Press Enter to skip][/cyan]",
                 default="",
             )
 
-            # If nothing entered, skip registration
+            # skip when no input
             if not input_cost_str.strip():
                 console.print(
                     f"[yellow]Cost registration for '{model}' skipped. Cost calculation will not work.[/yellow]"
                 )
                 continue
 
-            # Ask for output costs
+            # ask for output cost
             output_cost_str = Prompt.ask(
                 f"[cyan]Output token cost for '{model}' per Million tokens (e.g. 2.00) [Press Enter to skip][/cyan]",
                 default="",
             )
 
-            # If output costs not entered, skip
+            # if output costs not entered, skip
             if not output_cost_str.strip():
                 console.print(
                     f"[yellow]Cost registration for '{model}' skipped. Cost calculation will not work.[/yellow]"
@@ -78,7 +78,6 @@ def check_and_register_models(models: list[str], console: Console) -> None:
                     f"[red]Invalid cost values entered. Cost registration for '{model}' skipped.[/red]"
                 )
 
-
 def _build_litellm_args(
     *,
     model: str,
@@ -87,12 +86,10 @@ def _build_litellm_args(
     stream: bool,
     reasoning: dict | None,
     provider: str | None,
-) -> Dict[str, Any]:
+) -> dict[str, object]:
     """Builds a standardized argument dict for litellm.completion.
-
-    Centralizes optional reasoning/provider handling to avoid duplication.
     """
-    args: Dict[str, Any] = {
+    args: dict[str, object] = {
         "model": model,
         "messages": messages,
         "temperature": temperature,
@@ -100,12 +97,14 @@ def _build_litellm_args(
     }
     if reasoning is not None:
         if model.startswith("openai/"):
-        # HACK: only use reasoning effort when using openai API directly, reasoning dict does not work
+            # HACK: only use reasoning effort when using openai API directly, reasoning dict does not work
+            # Litellm drop_params does not work here
             args["reasoning_effort"] = reasoning["effort"]
         else:
             args["reasoning"] = reasoning
     if provider is not None:
         args["provider"] = {"order": [provider]}
+
     return args
 
 
@@ -117,7 +116,7 @@ def get_completion_with_retry(
     max_retries: int = 5,
     reasoning: dict | None = None,
     provider: str | None = None,
-) -> tuple[str, Dict[str, Any], str | None]:
+) -> tuple[str, dict[str, object], str | None]:
     """
     Makes a non-streaming LLM completion request with automatic retry on rate limit errors.
 
@@ -131,7 +130,7 @@ def get_completion_with_retry(
         provider (str | None, optional): Provider to use. Defaults to None.
 
     Returns:
-        tuple[str, Dict[str, Any], str | None]: A tuple containing:
+        tuple[str, dict[str, object], str | None]: A tuple containing:
             - The generated completion text from the model
             - Usage information including tokens and cost
             - Reasoning content if available, otherwise None
@@ -151,13 +150,12 @@ def get_completion_with_retry(
                 provider=provider,
             )
 
-
             response = completion(**completion_args)
             response_content = response["choices"][0]["message"]["content"]
 
             try:
+                # calculates cost for models - only fails if model not registered and user skipped manual registration
                 cost = completion_cost(response)
-            # for example if model not in litellm model map, then just ignore cost calculations
             except Exception:
                 cost = 0.0
 
@@ -176,7 +174,7 @@ def get_completion_with_retry(
                 "cost": cost,
             }
 
-            # Extract reasoning content if available
+            # extract reasoning content if available
             reasoning_content = None
             message = response["choices"][0]["message"]
             if hasattr(message, "reasoning_content") and message.reasoning_content:
@@ -186,15 +184,16 @@ def get_completion_with_retry(
 
         except RateLimitError as e:
             # Extract wait time from error message if available
+            # this is openrouter specific
             match = re.search(r"try again in (\d+\.?\d*)s", str(e))
             if match:
                 wait_time = float(match.group(1))
                 console.log(
                     f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
                 )
-                time.sleep(wait_time + 2)  # Add a buffer to the wait time
+                time.sleep(wait_time + 2)  
             else:
-                wait_time = 2  # Default wait time
+                wait_time = 2
                 console.log(
                     f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
                 )
@@ -211,7 +210,7 @@ def get_completion_with_retry(
             }
             return "Review model failed to generate response.", empty_usage, None
 
-    raise Exception("[bold red]Max retries exceeded. Still rate limited.[/bold red]")
+    raise Exception("[bold red]Max retries exceeded. bold red]")
 
 
 def get_streaming_completion_with_retry(
@@ -222,7 +221,7 @@ def get_streaming_completion_with_retry(
     max_retries: int = 5,
     reasoning: dict | None = None,
     provider: str | None = None,
-) -> Generator[tuple[str, str, Dict[str, Any]], None, None]:
+) -> Generator[tuple[str, str, dict[str, object]], None, None]:
     """
     Makes a streaming LLM completion request with automatic retry on rate limit errors.
 
@@ -236,7 +235,7 @@ def get_streaming_completion_with_retry(
         provider (str, optional): Provider to use. Defaults to None.
 
     Yields:
-        tuple[str, str, Dict[str, Any]]: A tuple containing:
+        tuple[str, str, dict[str, object]]: A tuple containing:
             - The current token
             - The full accumulated response so far
             - Usage information (empty for streaming)
@@ -289,11 +288,11 @@ def get_streaming_completion_with_retry(
                 )
                 time.sleep(wait_time + 2)
             else:
-                wait_time = 2  # Default wait time
+                wait_time = 2
                 console.log(
                     f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
                 )
                 time.sleep(wait_time)
             retries += 1
 
-    raise Exception("[bold red]Max retries exceeded. Still rate limited.[/bold red]")
+    raise Exception("[bold red]Max retries exceeded. bold red]")

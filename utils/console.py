@@ -6,7 +6,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.markdown import CodeBlock, Markdown
 import time
-from typing import Dict, Any
+
 
 from utils.llm import get_completion_with_retry, get_streaming_completion_with_retry
 
@@ -46,14 +46,15 @@ def get_response_with_status(
     console: Console,
     reasoning: dict | None = None,
     provider: str | None = None,
-) -> tuple[str, Dict[str, Any], str | None]:
+) -> tuple[str, dict[str, object], str | None]:
     """Gets a response from the model, handling streaming if enabled.
 
     Returns:
-        tuple[str, Dict[str, Any], str | None]: Response text, usage information, and optional reasoning content
+        tuple[str, dict[str, object], str | None]: Response text, usage information, and optional reasoning content
     """
     start_time = time.time()
 
+    # TODO: Streaming implementation has flickering and leaves artificats on scroll - needs fix
     if streaming:
         prettier_code_blocks()
         stream_gen = get_streaming_completion_with_retry(
@@ -64,7 +65,7 @@ def get_response_with_status(
             reasoning=reasoning,
             provider=provider,
         )
-        usage_info: Dict[str, Any] = {}
+        usage_info: dict[str, object] = {}
         full_response = ""
 
         with Live("", console=console, vertical_overflow="visible") as live:
@@ -100,8 +101,6 @@ def get_response_with_status(
             progress.update(task, completed=True)
 
     elapsed_time = time.time() - start_time
-
-    # Display token and cost information
     console.print(
         f"[dim italic]Request completed in {elapsed_time:.2f} seconds | Input Tokens: {usage_info.get('prompt_tokens', 0)} | Output Tokens: {usage_info.get('completion_tokens', 0)} | Cost: ${usage_info.get('cost', 0):.6f}[/dim italic]"
     )
