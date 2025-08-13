@@ -68,7 +68,7 @@ Either by creating a `.env` file or by defining the API key of your preferred pr
 ## ⚡ Usage
 ### 1. Execute the script
 ```bash
-python manim_generator.py
+python generate.py
 ```
 
 ### 2. CLI Arguments
@@ -109,11 +109,10 @@ The script supports the following command-line arguments:
 
 ### Example with specific models and video data:
 ```bash
-python manim_generator.py --video_data "Explain the concept of neural networks with visual examples" --manim_model "openrouter/anthropic/claude-sonnet-4" --review_model "openrouter/anthropic/claude-sonnet-4" --review_cycles 3
+python generate.py --video_data "Explain the concept of neural networks with visual examples" --manim_model "openrouter/anthropic/claude-sonnet-4" --review_model "openrouter/anthropic/claude-sonnet-4" --review_cycles 3
 ```
 
 ### 3. Tweak the config
-Manually configure what llm the coder and reviewer should use inside `manim_generator.py`.
 
 Images will only be used if the reviewer model supports image inputs. 
 ####  Check compatibility:
