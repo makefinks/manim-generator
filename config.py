@@ -14,7 +14,6 @@ DEFAULT_CONFIG = {
     "streaming": False,
     "temperature": 0.4,
     "success_threshold": 100,
-    "reasoning_effort": "high",
     "output_dir": "output",
     "frame_extraction_mode": "fixed_count",
     "frame_count": 3,
@@ -118,7 +117,6 @@ class Config:
         parser.add_argument(
             "--reasoning_effort",
             type=str,
-            default=DEFAULT_CONFIG["reasoning_effort"],
             choices=["minimal", "low", "medium", "high"],
             help="Reasoning effort level for OpenAI-style models (minimal/low/medium/high). Note: Minimal is only to be used with GPT-5",
         )

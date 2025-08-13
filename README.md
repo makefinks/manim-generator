@@ -95,11 +95,13 @@ The script supports the following command-line arguments:
 | `--review_cycles` | Number of review cycles to perform | 5 |
 | `--manim_logs` | Show Manim execution logs | False |
 | `--success_threshold` | Percentage of scenes that must render successfully to trigger enhanced visual review mode | 100 |
+| `--frame_extraction_mode` | Frame extraction mode: highest_density (single best frame) or fixed_count (multiple frames) | "fixed_count" |
+| `--frame_count` | Number of frames to extract when using fixed_count mode | 3 |
 
 #### Reasoning Tokens Configuration
 | Argument | Description | Default |
 |---------|-------------|---------|
-| `--reasoning_effort` | Reasoning effort level for OpenAI-style models (choices: "low", "medium", "high") | "high" |
+| `--reasoning_effort` | Reasoning effort level for OpenAI-style models (choices: "minimal", "low", "medium", "high") | - |
 | `--reasoning_max_tokens` | Maximum tokens for reasoning (Anthropic-style) | - |
 | `--reasoning_exclude` | Exclude reasoning tokens from response (model still uses reasoning internally) | - |
 
