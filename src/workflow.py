@@ -226,7 +226,7 @@ class ManimWorkflow:
 
     def _generate_review(
         self, code: str, logs: str, frames: list, previous_reviews: list, cycle_num: int
-    ) -> tuple[str, str]:
+    ) -> tuple[str, str | None]:
         """Generate a review of the current code."""
         frames_formatted = (
             convert_frames_to_message_format(frames)
@@ -317,7 +317,7 @@ class ManimWorkflow:
         review: str,
         video_data: str,
         cycle_num: int,
-        frames: list = None,
+        frames: list | None = None,
     ) -> str:
         """Generate a revised version of the code based on review feedback."""
 
@@ -328,25 +328,26 @@ class ManimWorkflow:
             else []
         )
 
+        revision_prompt = f"Here is the current code:\n\n```python\n{current_code}\n```\n\nHere is some feedback on your code:\n\n<review>\n{review}\n</review>\n\nPlease implement the suggestions and respond with the whole script. Do not leave anything out."
+
+        # include frames
         if frames_formatted:
             self.console.print(
                 f"[green]Adding {len(frames_formatted)} images to code revision"
             )
+            user_content = [
+                {"type": "text", "text": revision_prompt}
+            ] + frames_formatted
+        else:
+            user_content = revision_prompt
 
-        revision_prompt = f"Here is the current code:\n\n```python\n{current_code}\n```\n\nHere is some feedback on your code:\n\n<review>\n{review}\n</review>\n\nPlease implement the suggestions and respond with the whole script. Do not leave anything out."
         revision_messages = [
             {
                 "role": "system",
                 "content": format_prompt("init_prompt", {"video_data": video_data}),
             },
-            {"role": "user", "content": revision_prompt},
+            {"role": "user", "content": user_content},
         ]
-
-        # include frames
-        if frames_formatted:
-            revision_messages[-1]["content"] = [
-                {"type": "text", "text": revision_messages[-1]["content"]}
-            ] + frames_formatted
 
         self.console.rule(
             f"[bold green]Generating Code Revision {cycle_num}", style="green"

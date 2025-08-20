@@ -27,7 +27,7 @@ def prettier_code_blocks():
                 code,
                 self.lexer_name,
                 theme="monokai",
-                background_color="#1e1e1e",  # Dark background to match Panel style
+                background_color="#1e1e1e",
                 word_wrap=True,
                 line_numbers=True,
             )
@@ -52,6 +52,7 @@ def get_response_with_status(
         tuple[str, dict[str, object], str | None]: Response text, usage information, and optional reasoning content
     """
     start_time = time.time()
+    reasoning_content = None
 
     # TODO: Streaming implementation has flickering and leaves artificats on scroll - needs fix
     if streaming:

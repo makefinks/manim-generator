@@ -192,7 +192,7 @@ def run_manim_multiscene(
 
 def calculate_scene_success_rate(
     frames: list, scene_names: list[str] | Exception, frames_per_scene: int
-) -> tuple[float, int, int]:
+) -> tuple[float, float, int]:
     """
     Calculate the success rate of scene rendering.
 

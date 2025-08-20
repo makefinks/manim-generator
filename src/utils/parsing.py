@@ -1,7 +1,8 @@
 import ast
 import re
 
-def parse_code_block(text: str) -> str | None:
+
+def parse_code_block(text: str) -> str:
     """
     Returns the first Python code block from text (None if none found).
     Handles optional 'python' specifier and trims whitespace.
