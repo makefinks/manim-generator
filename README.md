@@ -94,6 +94,7 @@ The script supports the following command-line arguments:
 |---------|-------------|---------|
 | `--review_cycles` | Number of review cycles to perform | 5 |
 | `--manim_logs` | Show Manim execution logs | False |
+| `--output_dir` | Directory for generated artifacts (overrides auto-naming) | Auto (e.g., `manim_animation_20250101_120000`) |
 | `--success_threshold` | Percentage of scenes that must render successfully to trigger enhanced visual review mode | 100 |
 | `--frame_extraction_mode` | Frame extraction mode: highest_density (single best frame) or fixed_count (multiple frames) | "fixed_count" |
 | `--frame_count` | Number of frames to extract when using fixed_count mode | 3 |
@@ -106,6 +107,8 @@ The script supports the following command-line arguments:
 | `--reasoning_exclude` | Exclude reasoning tokens from response (model still uses reasoning internally) | - |
 
 > Note: You cannot use both `--reasoning_effort` and `--reasoning_max_tokens` at the same time.
+
+Providing `--output_dir` skips the automatic descriptor-based folder name and uses the supplied path instead.
 
 ### Example with specific models and video data:
 ```bash

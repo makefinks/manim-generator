@@ -14,7 +14,7 @@ DEFAULT_CONFIG = {
     "streaming": False,
     "temperature": 0.4,
     "success_threshold": 100,
-    "output_dir": "output",
+    "output_dir": None,
     "frame_extraction_mode": "fixed_count",
     "frame_count": 3,
 }
@@ -80,8 +80,10 @@ class Config:
         parser.add_argument(
             "--output_dir",
             type=str,
-            default=DEFAULT_CONFIG["output_dir"],
-            help="Directory to save outputs",
+            default=None,
+            help=(
+                "Directory to save outputs (overrides the auto-generated folder name)"
+            ),
         )
         parser.add_argument(
             "--manim_logs",
@@ -180,29 +182,35 @@ class Config:
                 )
                 exit(1)
 
+        output_dir = args.output_dir
         short_file_desc = "manim_animation"
-        if video_data:
+        if not output_dir and video_data:
             try:
                 response = completion(
                     model=args.manim_model,
                     reasoning_effort="low",
                     messages=[
                         {
-                            "content": f"Generate a max 4 word file descriptor for this content, no suffix, underscores instead of spaces. Answer with nothing else!: \n {video_data}",
+                            "content": (
+                                "Generate a max 4 word file descriptor for this content, "
+                                "no suffix, underscores instead of spaces. Answer with "
+                                f"nothing else!: \n {video_data}"
+                            ),
                             "role": "user",
                         }
                     ],
                 )
                 print(response.choices[0].message)
                 short_file_desc = response.choices[0].message.content
-
             except Exception as e:
                 print(e)
                 self.console.print(
                     f"[bold yellow]Warning: Could not generate file descriptor: {e}. Using default.[/bold yellow]"
                 )
 
-        print("File descriptor: " + short_file_desc)
+        if not output_dir:
+            output_dir = f"{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            print("File descriptor: " + short_file_desc)
         # Check if both models support vision/images
         main_vision_support = (
             supports_vision(model=args.manim_model) or args.force_vision
@@ -244,7 +252,7 @@ class Config:
             "manim_model": args.manim_model,
             "review_model": args.review_model,
             "review_cycles": args.review_cycles,
-            "output_dir": f"{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "output_dir": output_dir,
             "manim_logs": args.manim_logs,
             "streaming": args.streaming,
             "temperature": args.temperature,
