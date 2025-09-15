@@ -191,7 +191,10 @@ def run_manim_multiscene(
 
 
 def calculate_scene_success_rate(
-    frames: list, scene_names: list[str] | Exception, frames_per_scene: int
+    frames: list,
+    scene_names: list[str] | Exception,
+    frames_per_scene: int,
+    extraction_mode: str,
 ) -> tuple[float, float, int]:
     """
     Calculate the success rate of scene rendering.
@@ -199,6 +202,8 @@ def calculate_scene_success_rate(
     Args:
         frames: List of rendered frame data
         scene_names: List of scene class names or Exception if parsing failed
+        frames_per_scene: Expected frames per scene when in fixed-count mode
+        extraction_mode: Selected frame extraction strategy
 
     Returns:
         tuple: (success_rate, scenes_rendered, total_scenes)
@@ -207,10 +212,17 @@ def calculate_scene_success_rate(
         return 0.0, 0, 0
 
     total_scenes = len(scene_names)
-    scenes_rendered = len(frames) / frames_per_scene
 
     if total_scenes == 0:
         return 0.0, 0, 0
+
+    if extraction_mode == "fixed_count" and frames_per_scene > 0:
+        scenes_rendered = len(frames) / frames_per_scene
+    else:
+        # Highest-density (and other single-frame modes) return one frame per scene
+        scenes_rendered = len(frames)
+
+    scenes_rendered = min(scenes_rendered, total_scenes)
 
     success_rate = (scenes_rendered / total_scenes) * 100
     return success_rate, scenes_rendered, total_scenes

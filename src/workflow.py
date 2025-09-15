@@ -241,7 +241,10 @@ class ManimWorkflow:
         # success rate determines review prompt
         scene_names = extract_scene_class_names(code)
         success_rate, scenes_rendered, total_scenes = calculate_scene_success_rate(
-            frames, scene_names, self.config["frame_count"]
+            frames,
+            scene_names,
+            self.config["frame_count"],
+            self.config["frame_extraction_mode"],
         )
 
         # check if we can use visual enhance review prompt
