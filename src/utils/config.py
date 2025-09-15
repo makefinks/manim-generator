@@ -200,7 +200,6 @@ class Config:
                         }
                     ],
                 )
-                print(response.choices[0].message)
                 short_file_desc = response.choices[0].message.content
             except Exception as e:
                 print(e)
