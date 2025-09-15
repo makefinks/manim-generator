@@ -400,33 +400,40 @@ class ManimWorkflow:
         self, working_code: str | None, final_code: str, logs: str
     ) -> None:
         """Handle final output, saving, and rendering."""
+
         if working_code:
-            self.console.rule("[bold green]Final Result", style="green")
+            if Confirm.ask("View final working code?"):
+                self.console.rule("[bold green]Final Result", style="green")
 
-            print_code_with_syntax(working_code, self.console, "Final Manim Code")
+                print_code_with_syntax(working_code, self.console, "Final Manim Code")
 
-            saved_file = save_code_to_file(
-                working_code, filename=f"{self.config['output_dir']}/video.py"
-            )
-            self.console.print(f"[bold green]Code saved to: {saved_file}[/bold green]")
-
-            self.console.rule("[bold blue]Rendering Options", style="blue")
-            if Confirm.ask(
-                "[bold blue]Would you like to render the final video?[/bold blue]"
-            ):
-                self.console.rule("[bold blue]Rendering Final Video", style="blue")
-                render_and_concat(
-                    saved_file, self.config["output_dir"], "final_video.mp4"
+                saved_file = save_code_to_file(
+                    working_code, filename=f"{self.config['output_dir']}/video.py"
+                )
+                self.console.print(
+                    f"[bold green]Code saved to: {saved_file}[/bold green]"
                 )
 
-                self.artifact_manager.save_step_artifacts("final", code=working_code)
+                self.console.rule("[bold blue]Rendering Options", style="blue")
+                if Confirm.ask(
+                    "[bold blue]Would you like to render the final video?[/bold blue]"
+                ):
+                    self.console.rule("[bold blue]Rendering Final Video", style="blue")
+                    render_and_concat(
+                        saved_file, self.config["output_dir"], "final_video.mp4"
+                    )
+
+                    self.artifact_manager.save_step_artifacts(
+                        "final", code=working_code
+                    )
         else:
-            self.console.rule(
-                "[bold red]Final Result - With Errors (Not Executable)", style="red"
-            )
-            print_code_with_syntax(
-                final_code, self.console, "Final Manim Code (with errors)"
-            )
-            self.console.print(
-                Panel(logs, title="[red]Execution Errors[/red]", border_style="red")
-            )
+            if Confirm.ask("View final non-working code?"):
+                self.console.rule(
+                    "[bold red]Final Result - With Errors (Not Executable)", style="red"
+                )
+                print_code_with_syntax(
+                    final_code, self.console, "Final Manim Code (with errors)"
+                )
+                self.console.print(
+                    Panel(logs, title="[red]Execution Errors[/red]", border_style="red")
+                )

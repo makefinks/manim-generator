@@ -78,6 +78,7 @@ def check_and_register_models(models: list[str], console: Console) -> None:
                     f"[red]Invalid cost values entered. Cost registration for '{model}' skipped.[/red]"
                 )
 
+
 def _build_litellm_args(
     *,
     model: str,
@@ -87,8 +88,7 @@ def _build_litellm_args(
     reasoning: dict | None,
     provider: str | None,
 ) -> dict[str, object]:
-    """Builds a standardized argument dict for litellm.completion.
-    """
+    """Builds a standardized argument dict for litellm.completion."""
     args: dict[str, object] = {
         "model": model,
         "messages": messages,
@@ -191,7 +191,7 @@ def get_completion_with_retry(
                 console.log(
                     f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
                 )
-                time.sleep(wait_time + 2)  
+                time.sleep(wait_time + 2)
             else:
                 wait_time = 2
                 console.log(
