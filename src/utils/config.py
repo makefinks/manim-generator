@@ -152,6 +152,14 @@ class Config:
             default=DEFAULT_CONFIG["frame_count"],
             help="Number of frames to extract when using fixed_count mode",
         )
+        
+        # Headless mode configuration
+        parser.add_argument(
+            "--headless",
+            action="store_true",
+            default=False,
+            help="Enable headless mode with progress display only. Suppresses LLM outputs and Manim logs while showing clean progress information.",
+        )
 
         return parser
 
@@ -261,4 +269,5 @@ class Config:
             "success_threshold": args.success_threshold,
             "frame_extraction_mode": args.frame_extraction_mode,
             "frame_count": args.frame_count,
+            "headless": args.headless,
         }

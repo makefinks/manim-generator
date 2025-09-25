@@ -3,6 +3,7 @@
 import re
 import time
 from collections.abc import Generator
+from typing import Optional, Any
 from litellm import completion, completion_cost, model_cost, register_model
 import litellm
 from openai import RateLimitError

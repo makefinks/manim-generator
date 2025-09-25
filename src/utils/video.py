@@ -10,7 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 def render_and_concat(
-    script_file: str, output_media_dir: str, final_output: str
+    script_file: str, 
+    output_media_dir: str, 
+    final_output: str,
+    progress_manager=None
 ) -> None:
     """
     Runs a Manim script as a subprocess, then concatenates the rendered scene videos
@@ -20,7 +23,12 @@ def render_and_concat(
       script_file (str): Path to the Manim Python script (e.g. "video.py")
       output_media_dir (str): The media directory specified to Manim (e.g. "output")
       final_output (str): The filename for the concatenated final video (e.g. "final_video.mp4")
+      progress_manager: Optional progress manager for headless mode tracking
     """
+
+    # Update progress for manim rendering phase
+    if progress_manager:
+        progress_manager.update_step("Starting Manim rendering...")
 
     # run Manim as a subprocess with real-time output
     manim_command = [
@@ -52,9 +60,17 @@ def render_and_concat(
 
     if process.returncode != 0:
         logger.error("Error during Manim rendering")
+        if progress_manager:
+            progress_manager.display_error("Manim rendering failed")
         return
     else:
         logger.info("Manim rendering completed successfully.")
+        if progress_manager:
+            progress_manager.update_step("Manim rendering completed", 40.0)
+
+    # Update progress for scene extraction
+    if progress_manager:
+        progress_manager.update_step("Extracting scene information...")
 
     # extract scene names
     with open(script_file, "r", encoding="utf-8") as f:
@@ -62,6 +78,9 @@ def render_and_concat(
     scene_names = extract_scene_class_names(content)
 
     logger.info("Found scene names in order: %s", scene_names)
+
+    if progress_manager:
+        progress_manager.update_step("Preparing video concatenation...", 60.0)
 
     # Build the path to the rendered videos.
     script_basename = os.path.splitext(os.path.basename(script_file))[0]
@@ -73,7 +92,13 @@ def render_and_concat(
     )
     if not os.path.exists(videos_dir):
         logger.error("Rendered videos folder not found: %s", videos_dir)
+        if progress_manager:
+            progress_manager.display_error("Rendered videos folder not found")
         return
+
+    # Update progress for ffmpeg concatenation preparation
+    if progress_manager:
+        progress_manager.update_step("Creating ffmpeg concat list...", 70.0)
 
     # create a temporary file for ffmpeg's concat list in the output directory
     concat_list_path = os.path.join(output_media_dir, "ffmpeg_concat_list.txt")
@@ -106,6 +131,9 @@ def render_and_concat(
     ]
     logger.info("Concatenating videos with ffmpeg: %s", " ".join(ffmpeg_command))
 
+    if progress_manager:
+        progress_manager.update_step("Running ffmpeg concatenation...", 80.0)
+
     ffmpeg_proc = subprocess.Popen(
         ffmpeg_command,
         text=True,
@@ -126,9 +154,17 @@ def render_and_concat(
 
     if ffmpeg_proc.returncode != 0:
         logger.error("Error during ffmpeg concatenation")
+        if progress_manager:
+            progress_manager.display_error("FFmpeg concatenation failed")
     else:
         logger.info("Final concatenated video created at: %s", final_output_path)
+        if progress_manager:
+            progress_manager.update_step("Video concatenation completed", 90.0)
     os.remove(concat_list_path)
+
+    # Update progress for video playback
+    if progress_manager:
+        progress_manager.update_step("Opening final video...", 95.0)
 
     # autoplay final video
     play_command = []
@@ -139,6 +175,8 @@ def render_and_concat(
             logger.info("Playing video with default media player")
         except subprocess.CalledProcessError as e:
             logger.error("Failed to play video: %s", str(e))
+            if progress_manager:
+                progress_manager.display_error("Failed to play video")
     elif os.name == "posix":  # Linux/Mac
         if os.uname().sysname == "Linux":
             abs_path = os.path.abspath(final_output_path)
@@ -176,3 +214,7 @@ def render_and_concat(
         logger.error(
             "Could not determine appropriate video player command for this system"
         )
+    
+    # Final completion update
+    if progress_manager:
+        progress_manager.update_step("Video rendering and concatenation complete!", 100.0)

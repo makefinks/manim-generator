@@ -5,13 +5,15 @@ from rich.markdown import Markdown
 
 from src.artifacts import ArtifactManager
 from src.utils.usage import TokenUsageTracker
+from src.utils.progress import ProgressManager
 from src.utils.rendering import (
     extract_scene_class_names,
     run_manim_multiscene,
     calculate_scene_success_rate,
 )
 from src.utils.file import save_code_to_file
-from src.console import get_response_with_status, print_code_with_syntax
+from src.console import get_response_with_status, print_code_with_syntax, get_response_with_progress_aware_status
+from src.utils.progress import ProgressManager, CycleInfo
 from src.utils.prompt import (
     convert_frames_to_message_format,
     format_previous_reviews,
@@ -25,9 +27,10 @@ from src.utils.parsing import parse_code_block
 class ManimWorkflow:
     """Manages the Manim code generation and review workflow."""
 
-    def __init__(self, config: dict, console: Console):
+    def __init__(self, config: dict, console: Console, progress_manager=None):
         self.config = config
         self.console = console
+        self.progress_manager = progress_manager
         self.usage_tracker = TokenUsageTracker()
         self.artifact_manager = ArtifactManager(config["output_dir"], console)
         self.cycles_completed = 0
@@ -47,7 +50,14 @@ class ManimWorkflow:
         Returns:
             tuple: (generated_code, conversation_history)
         """
-        self.console.rule("[bold green]Initial Manim Code Generation", style="green")
+        # Update progress if in headless mode
+        if self.progress_manager:
+            self.progress_manager.update_stage("Initial Code Generation")
+            self.progress_manager.update_step("Preparing prompt...")
+        
+        # Skip verbose output in headless mode
+        if not (self.progress_manager and self.progress_manager.is_headless):
+            self.console.rule("[bold green]Initial Manim Code Generation", style="green")
 
         main_messages = [
             {
@@ -56,13 +66,18 @@ class ManimWorkflow:
             }
         ]
 
-        response, usage_info, reasoning_content = get_response_with_status(
+        # Update progress before API call
+        if self.progress_manager:
+            self.progress_manager.update_step("Generating code...")
+
+        response, usage_info, reasoning_content = get_response_with_progress_aware_status(
             self.config["manim_model"],
             main_messages,
             self.config["temperature"],
             self.config["streaming"],
             f"[bold green]Generating initial code \\[{self.config['manim_model']}\\]",
             self.console,
+            self.progress_manager,
             reasoning=self.config["reasoning"],
             provider=self.config["provider"],
         )
@@ -70,10 +85,16 @@ class ManimWorkflow:
         self.usage_tracker.add_step(
             "Initial Code Generation", self.config["manim_model"], usage_info
         )
-        self.console.clear()
+        
+        if not (self.progress_manager and self.progress_manager.is_headless):
+            self.console.clear()
+
+        # Update progress after completion
+        if self.progress_manager:
+            self.progress_manager.update_step("Processing generated code...")
 
         # display reasoning content if available and not streaming
-        if reasoning_content and not self.config["streaming"]:
+        if reasoning_content and not self.config["streaming"] and not (self.progress_manager and self.progress_manager.is_headless):
             self.console.print(
                 Panel(
                     reasoning_content,
@@ -84,13 +105,17 @@ class ManimWorkflow:
 
         code = parse_code_block(response)
 
-        if not self.config["streaming"]:
+        if not self.config["streaming"] and not (self.progress_manager and self.progress_manager.is_headless):
             print_code_with_syntax(code, self.console, "Generated Initial Manim Code")
 
         prompt_content = format_prompt("init_prompt", {"video_data": video_data})
         self.artifact_manager.save_step_artifacts(
             "initial", code=code, prompt=prompt_content, reasoning=reasoning_content
         )
+
+        # Final progress update
+        if self.progress_manager:
+            self.progress_manager.update_step("Initial code generated ✓")
 
         return code, main_messages
 
@@ -106,9 +131,16 @@ class ManimWorkflow:
         Returns:
             tuple: (success, frames, logs)
         """
-        self.console.rule(
-            f"[bold green]Running Manim Script - {step_name}", style="green"
-        )
+        # Update progress if in headless mode
+        if self.progress_manager:
+            self.progress_manager.update_stage(f"Code Execution - {step_name}")
+            self.progress_manager.update_step("Starting execution...")
+        
+        # Skip verbose output in headless mode
+        if not (self.progress_manager and self.progress_manager.is_headless):
+            self.console.rule(
+                f"[bold green]Running Manim Script - {step_name}", style="green"
+            )
 
         success, frames, logs = run_manim_multiscene(
             code,
@@ -118,6 +150,7 @@ class ManimWorkflow:
             self.artifact_manager,
             self.config.get("frame_extraction_mode", "fixed_count"),
             self.config.get("frame_count", 3),
+            self.progress_manager,
         )
 
         self._display_execution_status(success, frames, code, logs)
@@ -131,12 +164,21 @@ class ManimWorkflow:
             step_name.lower().replace(" ", "_"), code=code, logs=logs
         )
 
+        # Update progress after execution
+        if self.progress_manager:
+            status = "completed successfully ✓" if success else "completed with errors ⚠"
+            self.progress_manager.update_step(f"Execution {status}")
+
         return success, frames, logs
 
     def _display_execution_status(
         self, success: bool, frames: list, code: str, logs: str
     ) -> None:
         """Display execution status information."""
+        # Skip detailed output in headless mode
+        if self.progress_manager and self.progress_manager.is_headless:
+            return
+            
         status_color = "green" if success else "red"
 
         scene_names = extract_scene_class_names(code)
@@ -186,14 +228,27 @@ class ManimWorkflow:
         previous_reviews = []
 
         for cycle in range(self.config["review_cycles"]):
-            self.console.rule(f"[bold blue]Review Cycle {cycle + 1}", style="blue")
+            # Update progress with cycle information
+            if self.progress_manager:
+                cycle_info = CycleInfo(
+                    current_cycle=cycle + 1,
+                    total_cycles=self.config["review_cycles"],
+                    cycle_type="review"
+                )
+                self.progress_manager.set_cycle_info(cycle_info)
+                self.progress_manager.update_stage(f"Review Cycle {cycle + 1}")
+                self.progress_manager.update_step("Generating review...")
+            
+            # Skip verbose output in headless mode
+            if not (self.progress_manager and self.progress_manager.is_headless):
+                self.console.rule(f"[bold blue]Review Cycle {cycle + 1}", style="blue")
 
             review, review_reasoning = self._generate_review(
                 current_code, combined_logs, last_frames, previous_reviews, cycle + 1
             )
             previous_reviews.append(review)
 
-            if review_reasoning and not self.config["streaming"]:
+            if review_reasoning and not self.config["streaming"] and not (self.progress_manager and self.progress_manager.is_headless):
                 self.console.print(
                     Panel(
                         review_reasoning,
@@ -202,13 +257,18 @@ class ManimWorkflow:
                     )
                 )
 
-            self.console.print(
-                Panel(
-                    Markdown(review),
-                    title="[blue]Review Feedback[/blue]",
-                    border_style="blue",
+            if not (self.progress_manager and self.progress_manager.is_headless):
+                self.console.print(
+                    Panel(
+                        Markdown(review),
+                        title="[blue]Review Feedback[/blue]",
+                        border_style="blue",
+                    )
                 )
-            )
+
+            # Update progress for code revision
+            if self.progress_manager:
+                self.progress_manager.update_step("Generating code revision...")
 
             current_code = self._generate_code_revision(
                 current_code, review, video_data, cycle + 1, last_frames
@@ -222,6 +282,10 @@ class ManimWorkflow:
 
             self.cycles_completed = cycle + 1
 
+        # Clear cycle info when done
+        if self.progress_manager:
+            self.progress_manager.set_cycle_info(None)
+
         return current_code, working_code, combined_logs
 
     def _generate_review(
@@ -234,9 +298,10 @@ class ManimWorkflow:
             else []
         )
 
-        self.console.print(
-            f"[blue] Adding {len(frames_formatted)} images to the review"
-        )
+        if frames_formatted and not (self.progress_manager and self.progress_manager.is_headless):
+            self.console.print(
+                f"[blue] Adding {len(frames_formatted)} images to the review"
+            )
 
         # success rate determines review prompt
         scene_names = extract_scene_class_names(code)
@@ -254,9 +319,10 @@ class ManimWorkflow:
         )
 
         if use_enhanced_prompt:
-            self.console.print(
-                f"[green]High success rate ({success_rate:.1f}%) - Using enhanced visual review prompt"
-            )
+            if not (self.progress_manager and self.progress_manager.is_headless):
+                self.console.print(
+                    f"[green]High success rate ({success_rate:.1f}%) - Using enhanced visual review prompt"
+                )
             review_content = format_prompt(
                 prompt_name,
                 {
@@ -269,9 +335,10 @@ class ManimWorkflow:
                 },
             )
         else:
-            self.console.print(
-                f"[yellow]Success rate ({success_rate:.1f}%) - Using standard technical review prompt"
-            )
+            if not (self.progress_manager and self.progress_manager.is_headless):
+                self.console.print(
+                    f"[yellow]Success rate ({success_rate:.1f}%) - Using standard technical review prompt"
+                )
             review_content = format_prompt(
                 prompt_name,
                 {
@@ -291,13 +358,14 @@ class ManimWorkflow:
             }
         ]
 
-        response, usage_info, reasoning_content = get_response_with_status(
+        response, usage_info, reasoning_content = get_response_with_progress_aware_status(
             self.config["review_model"],
             review_message,
             self.config["temperature"],
             self.config["streaming"],
             status=f"[bold blue]Generating {'Enhanced Visual' if use_enhanced_prompt else 'Technical'} Review \\[{self.config['review_model']}\\]",
             console=self.console,
+            progress_manager=self.progress_manager,
             reasoning=self.config["reasoning"],
             provider=self.config["provider"],
         )
@@ -335,9 +403,10 @@ class ManimWorkflow:
 
         # include frames
         if frames_formatted:
-            self.console.print(
-                f"[green]Adding {len(frames_formatted)} images to code revision"
-            )
+            if not (self.progress_manager and self.progress_manager.is_headless):
+                self.console.print(
+                    f"[green]Adding {len(frames_formatted)} images to code revision"
+                )
             user_content = [
                 {"type": "text", "text": revision_prompt}
             ] + frames_formatted
@@ -352,22 +421,25 @@ class ManimWorkflow:
             {"role": "user", "content": user_content},
         ]
 
-        self.console.rule(
-            f"[bold green]Generating Code Revision {cycle_num}", style="green"
-        )
+        # Skip verbose output in headless mode
+        if not (self.progress_manager and self.progress_manager.is_headless):
+            self.console.rule(
+                f"[bold green]Generating Code Revision {cycle_num}", style="green"
+            )
 
-        revised_response, usage_info, reasoning_content = get_response_with_status(
+        revised_response, usage_info, reasoning_content = get_response_with_progress_aware_status(
             self.config["manim_model"],
             revision_messages,
             self.config["temperature"],
             self.config["streaming"],
             f"[bold green]Generating code revision \\[{self.config['manim_model']}]",
             self.console,
+            self.progress_manager,
             reasoning=self.config["reasoning"],
             provider=self.config["provider"],
         )
 
-        if reasoning_content and not self.config["streaming"]:
+        if reasoning_content and not self.config["streaming"] and not (self.progress_manager and self.progress_manager.is_headless):
             self.console.print(
                 Panel(
                     reasoning_content,
@@ -381,8 +453,8 @@ class ManimWorkflow:
 
         revised_code = parse_code_block(revised_response)
 
-        # only display code block if not streaming
-        if not self.config["streaming"]:
+        # only display code block if not streaming and not in headless mode
+        if not self.config["streaming"] and not (self.progress_manager and self.progress_manager.is_headless):
             print_code_with_syntax(
                 revised_code, self.console, f"Revised Code - Cycle {cycle_num}"
             )
@@ -400,40 +472,70 @@ class ManimWorkflow:
         self, working_code: str | None, final_code: str, logs: str
     ) -> None:
         """Handle final output, saving, and rendering."""
+        
+        # Update progress for finalization
+        if self.progress_manager:
+            self.progress_manager.update_stage("Finalizing Output")
+            self.progress_manager.update_step("Preparing final results...")
 
         if working_code:
-            if Confirm.ask("View final working code?"):
-                self.console.rule("[bold green]Final Result", style="green")
-
-                print_code_with_syntax(working_code, self.console, "Final Manim Code")
-
+            # In headless mode, automatically save without asking
+            if self.progress_manager and self.progress_manager.is_headless:
+                if self.progress_manager:
+                    self.progress_manager.update_step("Saving final code...")
+                
                 saved_file = save_code_to_file(
                     working_code, filename=f"{self.config['output_dir']}/video.py"
                 )
-                self.console.print(
-                    f"[bold green]Code saved to: {saved_file}[/bold green]"
+                
+                self.artifact_manager.save_step_artifacts(
+                    "final", code=working_code
                 )
+            else:
+                # Normal interactive mode
+                if Confirm.ask("View final working code?"):
+                    self.console.rule("[bold green]Final Result", style="green")
 
-                self.console.rule("[bold blue]Rendering Options", style="blue")
-                if Confirm.ask(
-                    "[bold blue]Would you like to render the final video?[/bold blue]"
-                ):
-                    self.console.rule("[bold blue]Rendering Final Video", style="blue")
-                    render_and_concat(
-                        saved_file, self.config["output_dir"], "final_video.mp4"
+                    print_code_with_syntax(working_code, self.console, "Final Manim Code")
+
+                    if self.progress_manager:
+                        self.progress_manager.update_step("Saving final code...")
+
+                    saved_file = save_code_to_file(
+                        working_code, filename=f"{self.config['output_dir']}/video.py"
+                    )
+                    self.console.print(
+                        f"[bold green]Code saved to: {saved_file}[/bold green]"
                     )
 
-                    self.artifact_manager.save_step_artifacts(
-                        "final", code=working_code
-                    )
+                    self.console.rule("[bold blue]Rendering Options", style="blue")
+                    if Confirm.ask(
+                        "[bold blue]Would you like to render the final video?[/bold blue]"
+                    ):
+                        if self.progress_manager:
+                            self.progress_manager.update_step("Rendering final video...")
+                            
+                        self.console.rule("[bold blue]Rendering Final Video", style="blue")
+                        render_and_concat(
+                            saved_file, self.config["output_dir"], "final_video.mp4"
+                        )
+
+                        self.artifact_manager.save_step_artifacts(
+                            "final", code=working_code
+                        )
         else:
-            if Confirm.ask("View final non-working code?"):
-                self.console.rule(
-                    "[bold red]Final Result - With Errors (Not Executable)", style="red"
-                )
-                print_code_with_syntax(
-                    final_code, self.console, "Final Manim Code (with errors)"
-                )
-                self.console.print(
-                    Panel(logs, title="[red]Execution Errors[/red]", border_style="red")
-                )
+            if not (self.progress_manager and self.progress_manager.is_headless):
+                if Confirm.ask("View final non-working code?"):
+                    self.console.rule(
+                        "[bold red]Final Result - With Errors (Not Executable)", style="red"
+                    )
+                    print_code_with_syntax(
+                        final_code, self.console, "Final Manim Code (with errors)"
+                    )
+                    self.console.print(
+                        Panel(logs, title="[red]Execution Errors[/red]", border_style="red")
+                    )
+
+        # Final progress update
+        if self.progress_manager:
+            self.progress_manager.update_step("Finalization complete ✓")

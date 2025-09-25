@@ -5,6 +5,7 @@ from rich.panel import Panel
 from src.utils.config import Config
 from src.workflow import ManimWorkflow
 from src.utils.file import load_video_data
+from src.utils.progress import DisplayMode, ProgressManager
 from src.utils.usage import (
     display_usage_summary,
     save_usage_report,
@@ -20,12 +21,20 @@ def main():
     config_manager = Config()
     config, video_data_arg, video_data_file = config_manager.parse_arguments()
 
+    # Create DisplayMode from CLI arguments
+    display_mode = DisplayMode(headless=config['headless'])
+    
+    # Initialize ProgressManager when headless mode is enabled
+    progress_manager = None
+    if display_mode.headless:
+        progress_manager = ProgressManager(display_mode)
+
     if video_data_arg:
         video_data = video_data_arg
     else:
         video_data = load_video_data(video_data_file, console)
 
-    workflow = ManimWorkflow(config, console)
+    workflow = ManimWorkflow(config, console, progress_manager)
 
     current_code, main_messages = workflow.generate_initial_code(video_data)
     success, last_frames, combined_logs = workflow.execute_code(current_code, "Initial")
@@ -50,25 +59,40 @@ def main():
     end_time = time.time()
     workflow_duration = end_time - start_time
 
-    console.rule("[bold cyan]Workflow Summary", style="cyan")
-    console.print(
-        f"[bold cyan]Total workflow time:[/bold cyan] {format_duration(workflow_duration)}"
-    )
-    console.print(f"[cyan]Review cycles completed:[/cyan] {workflow.cycles_completed}")
-    console.print(f"[cyan]Total executions:[/cyan] {workflow.execution_count}")
-    console.print(
-        f"[cyan]Successful executions:[/cyan] {workflow.successful_executions}"
-    )
-    console.print(
-        f"[cyan]Initial success:[/cyan] {'✓' if workflow.initial_success else '✗'}"
-    )
-    console.print(
-        f"[cyan]Final working code:[/cyan] {'✓' if working_code is not None else '✗'}"
-    )
+    # Complete the progress manager if in headless mode
+    if progress_manager:
+        progress_manager.complete(
+            success=working_code is not None, 
+            message=f"Completed in {format_duration(workflow_duration)}"
+        )
 
-    console.rule("[bold cyan]Token Usage & Cost Summary", style="cyan")
-    token_usage_tracking = workflow.usage_tracker.get_tracking_data()
-    display_usage_summary(console, token_usage_tracking)
+    # Show summary only if not in headless mode
+    if not (progress_manager and progress_manager.is_headless):
+        console.rule("[bold cyan]Workflow Summary", style="cyan")
+        console.print(
+            f"[bold cyan]Total workflow time:[/bold cyan] {format_duration(workflow_duration)}"
+        )
+        console.print(f"[cyan]Review cycles completed:[/cyan] {workflow.cycles_completed}")
+        console.print(f"[cyan]Total executions:[/cyan] {workflow.execution_count}")
+        console.print(
+            f"[cyan]Successful executions:[/cyan] {workflow.successful_executions}"
+        )
+        console.print(
+            f"[cyan]Initial success:[/cyan] {'✓' if workflow.initial_success else '✗'}"
+        )
+        console.print(
+            f"[cyan]Final working code:[/cyan] {'✓' if working_code is not None else '✗'}"
+        )
+
+        console.rule("[bold cyan]Token Usage & Cost Summary", style="cyan")
+        token_usage_tracking = workflow.usage_tracker.get_tracking_data()
+        display_usage_summary(console, token_usage_tracking)
+    else:
+        # In headless mode, show minimal summary
+        token_usage_tracking = workflow.usage_tracker.get_tracking_data()
+        total_cost = sum(step.get('cost', 0) for step in token_usage_tracking.values())
+        console.print(f"✅ Workflow completed in {format_duration(workflow_duration)} | Cost: ${total_cost:.4f}")
+    
     save_usage_report(config["output_dir"], token_usage_tracking, console)
 
     save_workflow_metadata(
