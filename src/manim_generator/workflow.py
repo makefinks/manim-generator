@@ -42,9 +42,7 @@ class ManimWorkflow:
         self.headless_manager = None
 
         if self.headless:
-            self.headless_manager = HeadlessProgressManager(
-                console, config["review_cycles"]
-            )
+            self.headless_manager = HeadlessProgressManager(console, config["review_cycles"])
             self.headless_manager.start()
 
         models_to_check = [config["manim_model"], config["review_model"]]
@@ -62,9 +60,7 @@ class ManimWorkflow:
         if self.headless and self.headless_manager:
             self.headless_manager.update("Initial Code Generation")
         else:
-            self.console.rule(
-                "[bold green]Initial Manim Code Generation", style="green"
-            )
+            self.console.rule("[bold green]Initial Manim Code Generation", style="green")
 
         main_messages = [
             {
@@ -105,7 +101,7 @@ class ManimWorkflow:
 
         code = parse_code_block(response)
 
-        if not self.config["streaming"] and not self.headless:
+        if not self.headless:
             print_code_with_syntax(code, self.console, "Generated Initial Manim Code")
 
         prompt_content = format_prompt("init_prompt", {"video_data": video_data})
@@ -115,9 +111,7 @@ class ManimWorkflow:
 
         return code, main_messages
 
-    def execute_code(
-        self, code: str, step_name: str = "Execution"
-    ) -> tuple[bool, list, str]:
+    def execute_code(self, code: str, step_name: str = "Execution") -> tuple[bool, list, str]:
         """Execute Manim code and return results.
 
         Args:
@@ -130,9 +124,7 @@ class ManimWorkflow:
         if self.headless and self.headless_manager:
             self.headless_manager.update(f"{step_name}")
         else:
-            self.console.rule(
-                f"[bold green]Running Manim Script - {step_name}", style="green"
-            )
+            self.console.rule(f"[bold green]Running Manim Script - {step_name}", style="green")
 
         success, frames, logs = run_manim_multiscene(
             code,
@@ -161,9 +153,7 @@ class ManimWorkflow:
 
         return success, frames, logs
 
-    def _display_execution_status(
-        self, success: bool, frames: list, code: str, logs: str
-    ) -> None:
+    def _display_execution_status(self, success: bool, frames: list, code: str, logs: str) -> None:
         """Display execution status information."""
         status_color = "green" if success else "red"
 
@@ -179,9 +169,7 @@ class ManimWorkflow:
 
         if self.config["manim_logs"]:
             log_title = (
-                "[green]Execution Logs[/green]"
-                if success
-                else "[red]Execution Errors[/red]"
+                "[green]Execution Logs[/green]" if success else "[red]Execution Errors[/red]"
             )
             log_style = "green" if success else "red"
             self.console.print(
@@ -270,9 +258,7 @@ class ManimWorkflow:
         )
 
         if not self.headless:
-            self.console.print(
-                f"[blue] Adding {len(frames_formatted)} images to the review"
-            )
+            self.console.print(f"[blue] Adding {len(frames_formatted)} images to the review")
 
         # success rate determines review prompt
         scene_names = extract_scene_class_names(code)
@@ -285,9 +271,7 @@ class ManimWorkflow:
 
         # check if we can use visual enhance review prompt
         use_enhanced_prompt = success_rate >= self.config["success_threshold"]
-        prompt_name = (
-            "review_prompt_enhanced" if use_enhanced_prompt else "review_prompt"
-        )
+        prompt_name = "review_prompt_enhanced" if use_enhanced_prompt else "review_prompt"
 
         if not self.headless:
             if use_enhanced_prompt:
@@ -380,12 +364,8 @@ class ManimWorkflow:
         # include frames
         if frames_formatted:
             if not self.headless:
-                self.console.print(
-                    f"[green]Adding {len(frames_formatted)} images to code revision"
-                )
-            user_content = [
-                {"type": "text", "text": revision_prompt}
-            ] + frames_formatted
+                self.console.print(f"[green]Adding {len(frames_formatted)} images to code revision")
+            user_content = [{"type": "text", "text": revision_prompt}] + frames_formatted
         else:
             user_content = revision_prompt
 
@@ -398,9 +378,7 @@ class ManimWorkflow:
         ]
 
         if not self.headless:
-            self.console.rule(
-                f"[bold green]Generating Code Revision {cycle_num}", style="green"
-            )
+            self.console.rule(f"[bold green]Generating Code Revision {cycle_num}", style="green")
 
         revised_response, usage_info, reasoning_content = get_response_with_status(
             self.config["manim_model"],
@@ -430,11 +408,8 @@ class ManimWorkflow:
 
         revised_code = parse_code_block(revised_response)
 
-        # only display code block if not streaming
-        if not self.config["streaming"] and not self.headless:
-            print_code_with_syntax(
-                revised_code, self.console, f"Revised Code - Cycle {cycle_num}"
-            )
+        if not self.headless:
+            print_code_with_syntax(revised_code, self.console, f"Revised Code - Cycle {cycle_num}")
 
         self.artifact_manager.save_step_artifacts(
             f"revision_{cycle_num}",
@@ -445,9 +420,7 @@ class ManimWorkflow:
 
         return revised_code
 
-    def finalize_output(
-        self, working_code: str | None, final_code: str, logs: str
-    ) -> None:
+    def finalize_output(self, working_code: str | None, final_code: str, logs: str) -> None:
         """Handle final output, saving, and rendering."""
         if self.headless and self.headless_manager:
             self.headless_manager.update("Finalization")
@@ -457,45 +430,31 @@ class ManimWorkflow:
             if self.headless or Confirm.ask("View final working code?"):
                 if not self.headless:
                     self.console.rule("[bold green]Final Result", style="green")
-                    print_code_with_syntax(
-                        working_code, self.console, "Final Manim Code"
-                    )
+                    print_code_with_syntax(working_code, self.console, "Final Manim Code")
 
                 saved_file = save_code_to_file(
                     working_code, filename=f"{self.config['output_dir']}/video.py"
                 )
 
                 if not self.headless:
-                    self.console.print(
-                        f"[bold green]Code saved to: {saved_file}[/bold green]"
-                    )
+                    self.console.print(f"[bold green]Code saved to: {saved_file}[/bold green]")
 
                     self.console.rule("[bold blue]Rendering Options", style="blue")
                     if Confirm.ask(
                         "[bold blue]Would you like to render the final video?[/bold blue]"
                     ):
-                        self.console.rule(
-                            "[bold blue]Rendering Final Video", style="blue"
-                        )
-                        render_and_concat(
-                            saved_file, self.config["output_dir"], "final_video.mp4"
-                        )
+                        self.console.rule("[bold blue]Rendering Final Video", style="blue")
+                        render_and_concat(saved_file, self.config["output_dir"], "final_video.mp4")
 
-                        self.artifact_manager.save_step_artifacts(
-                            "final", code=working_code
-                        )
+                        self.artifact_manager.save_step_artifacts("final", code=working_code)
                 else:
-                    self.artifact_manager.save_step_artifacts(
-                        "final", code=working_code
-                    )
+                    self.artifact_manager.save_step_artifacts("final", code=working_code)
         else:
             if not self.headless and Confirm.ask("View final non-working code?"):
                 self.console.rule(
                     "[bold red]Final Result - With Errors (Not Executable)", style="red"
                 )
-                print_code_with_syntax(
-                    final_code, self.console, "Final Manim Code (with errors)"
-                )
+                print_code_with_syntax(final_code, self.console, "Final Manim Code (with errors)")
                 self.console.print(
                     Panel(logs, title="[red]Execution Errors[/red]", border_style="red")
                 )

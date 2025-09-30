@@ -156,5 +156,5 @@ Focus areas include prompt improvements, review loop refinements, code quality, 
 
 ### Known issues
 
-- **Streaming**: current streaming implementation flickers and leaves artifacts in scroll history.
+- **Streaming**: current streaming implementation does not provide syntax highlighting
 - **Prompting / environment setup**: the selected LLM version may not match the local installation.

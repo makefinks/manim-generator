@@ -12,7 +12,7 @@ from manim_generator.utils.llm import get_completion_with_retry, get_streaming_c
 
 class HeadlessProgressManager:
     """Manages a single progress bar for headless mode."""
-    
+
     def __init__(self, console: Console, total_cycles: int):
         self.console = console
         self.total_cycles = total_cycles
@@ -29,43 +29,40 @@ class HeadlessProgressManager:
         )
         self.task_id = None
         self.progress_started = False
-        
+
     def start(self):
         """Start the progress display."""
         if not self.progress_started:
             self.progress.start()
             self.task_id = self.progress.add_task(
-                "Initializing...",
-                total=self._calculate_total_steps()
+                "Initializing...", total=self._calculate_total_steps()
             )
             self.progress_started = True
-    
+
     def _calculate_total_steps(self) -> int:
         """Calculate total number of steps in the workflow."""
         return 2 + (self.total_cycles * 3)
-    
+
     def update(self, phase: str, extra_info: str = ""):
         """Update the progress bar with current phase."""
         if not self.progress_started:
             self.start()
-        
+
         if self.task_id is None:
             return
-        
+
         description = f"{phase}"
         if extra_info:
             description += f" | {extra_info}"
-        
+
         if self.execution_count > 0:
-            description += f" | Executions: {self.execution_count} ({self.successful_executions} successful)"
-        
+            description += (
+                f" | Executions: {self.execution_count} ({self.successful_executions} successful)"
+            )
+
         current_step = self._get_current_step(phase)
-        self.progress.update(
-            self.task_id,
-            description=description,
-            completed=current_step
-        )
-    
+        self.progress.update(self.task_id, description=description, completed=current_step)
+
     def _get_current_step(self, phase: str) -> int:
         """Calculate current step number based on phase."""
         if "Initial Code Generation" in phase:
@@ -81,48 +78,22 @@ class HeadlessProgressManager:
         elif "Finalization" in phase:
             return self._calculate_total_steps()
         return 0
-    
+
     def set_cycle(self, cycle: int):
         """Set the current cycle number."""
         self.current_cycle = cycle
-    
+
     def increment_execution(self, success: bool):
         """Increment execution counters."""
         self.execution_count += 1
         if success:
             self.successful_executions += 1
-    
+
     def stop(self):
         """Stop the progress display."""
         if self.progress_started:
             self.progress.stop()
             self.progress_started = False
-
-
-def prettier_code_blocks():
-    """Make rich code blocks prettier and easier to copy.
-
-    From https://github.com/samuelcolvin/aicli/blob/v0.8.0/samuelcolvin_aicli.py#L22
-    """
-
-    class SimpleCodeBlock(CodeBlock):
-        def __rich_console__(
-            self, console: Console, options: ConsoleOptions
-        ) -> RenderResult:
-            code = str(self.text).rstrip()
-            yield Text(self.lexer_name, style="dim")
-            # Use a dark background similar to the non-streaming Panel display
-            yield Syntax(
-                code,
-                self.lexer_name,
-                theme="monokai",
-                background_color="#1e1e1e",
-                word_wrap=True,
-                line_numbers=True,
-            )
-            yield Text(f"/{self.lexer_name}", style="dim")
-
-    Markdown.elements["fence"] = SimpleCodeBlock
 
 
 def get_response_with_status(
@@ -147,7 +118,6 @@ def get_response_with_status(
 
     # TODO: Streaming implementation has flickering and leaves artificats on scroll - needs fix
     if streaming and not headless:
-        prettier_code_blocks()
         stream_gen = get_streaming_completion_with_retry(
             model=model,
             messages=messages,
@@ -159,12 +129,11 @@ def get_response_with_status(
         usage_info: dict[str, object] = {}
         full_response = ""
 
-        with Live("", console=console, vertical_overflow="visible") as live:
-            for token, response, usage in stream_gen:
-                if token:
-                    full_response = response
-                    live.update(Markdown(full_response))
-                usage_info = usage
+        for token, response, usage in stream_gen:
+            if token:
+                console.print(token, end="")
+            full_response = response
+            usage_info = usage
 
         response_text = full_response
     elif headless:
@@ -184,9 +153,7 @@ def get_response_with_status(
             transient=True,
         ) as progress:
             task = progress.add_task(
-                f"[bold green]Generating response [{model}]..."
-                if not status
-                else status,
+                f"[bold green]Generating response [{model}]..." if not status else status,
                 total=None,
             )
 
