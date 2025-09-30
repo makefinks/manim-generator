@@ -33,7 +33,7 @@ def format_previous_reviews(previous_reviews: list[str]) -> str:
     """
 
     xml_formatted = [
-        f"<review_{idx}>\n{feedback}\n</review_{idx}"
+        f"<review_{idx}>\n{feedback}\n</review_{idx}>"
         for idx, feedback in enumerate(previous_reviews)
     ]
     return "\n".join(xml_formatted)
