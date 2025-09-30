@@ -14,7 +14,9 @@ from rich.prompt import Prompt
 litellm.drop_params = True
 
 
-def check_and_register_models(models: list[str], console: Console) -> None:
+def check_and_register_models(
+    models: list[str], console: Console, headless: bool = False
+) -> None:
     """
     Checks if models are registered in the LiteLLM cost map.
     If not, prompts the user for costs and registers them.
@@ -22,9 +24,14 @@ def check_and_register_models(models: list[str], console: Console) -> None:
     Args:
         models (list[str]): List of models to check
         console (Console): Rich console instance for output
+        headless (bool): If True, skip interactive prompts and auto-skip registration
     """
     for model in models:
         if model not in model_cost:
+            if headless:
+                # In headless mode, silently skip registration
+                continue
+
             console.print(
                 f"[yellow]Model '{model}' is not registered in the LiteLLM cost map.[/yellow]"
             )

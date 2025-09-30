@@ -19,6 +19,8 @@ def main():
 
     config_manager = Config()
     config, video_data_arg, video_data_file = config_manager.parse_arguments()
+    
+    headless = config.get("headless", False)
 
     if video_data_arg:
         video_data = video_data_arg
@@ -34,7 +36,7 @@ def main():
     workflow.successful_executions += 1 if success else 0
     working_code = current_code if success else None
 
-    if not working_code:
+    if not working_code and not headless:
         console.print(
             Panel(
                 "[bold red]Initial code failed to execute properly. Starting review cycles to fix issues.[/bold red]",
@@ -50,26 +52,32 @@ def main():
     end_time = time.time()
     workflow_duration = end_time - start_time
 
-    console.rule("[bold cyan]Workflow Summary", style="cyan")
-    console.print(
-        f"[bold cyan]Total workflow time:[/bold cyan] {format_duration(workflow_duration)}"
-    )
-    console.print(f"[cyan]Review cycles completed:[/cyan] {workflow.cycles_completed}")
-    console.print(f"[cyan]Total executions:[/cyan] {workflow.execution_count}")
-    console.print(
-        f"[cyan]Successful executions:[/cyan] {workflow.successful_executions}"
-    )
-    console.print(
-        f"[cyan]Initial success:[/cyan] {'✓' if workflow.initial_success else '✗'}"
-    )
-    console.print(
-        f"[cyan]Final working code:[/cyan] {'✓' if working_code is not None else '✗'}"
-    )
+    if not headless:
+        console.rule("[bold cyan]Workflow Summary", style="cyan")
+        console.print(
+            f"[bold cyan]Total workflow time:[/bold cyan] {format_duration(workflow_duration)}"
+        )
+        console.print(f"[cyan]Review cycles completed:[/cyan] {workflow.cycles_completed}")
+        console.print(f"[cyan]Total executions:[/cyan] {workflow.execution_count}")
+        console.print(
+            f"[cyan]Successful executions:[/cyan] {workflow.successful_executions}"
+        )
+        console.print(
+            f"[cyan]Initial success:[/cyan] {'✓' if workflow.initial_success else '✗'}"
+        )
+        console.print(
+            f"[cyan]Final working code:[/cyan] {'✓' if working_code is not None else '✗'}"
+        )
 
-    console.rule("[bold cyan]Token Usage & Cost Summary", style="cyan")
-    token_usage_tracking = workflow.usage_tracker.get_tracking_data()
-    display_usage_summary(console, token_usage_tracking)
-    save_usage_report(config["output_dir"], token_usage_tracking, console)
+        console.rule("[bold cyan]Token Usage & Cost Summary", style="cyan")
+        token_usage_tracking = workflow.usage_tracker.get_tracking_data()
+        display_usage_summary(console, token_usage_tracking)
+        save_usage_report(config["output_dir"], token_usage_tracking, console)
+    else:
+        token_usage_tracking = workflow.usage_tracker.get_tracking_data()
+        save_usage_report(config["output_dir"], token_usage_tracking, console)
+        console.print(f"\n[bold green]✓ Workflow complete in {format_duration(workflow_duration)}[/bold green]")
+        console.print(f"[green]Output saved to: {config['output_dir']}/video.py[/green]")
 
     save_workflow_metadata(
         config["output_dir"],

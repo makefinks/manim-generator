@@ -28,6 +28,7 @@ def run_manim_multiscene(
     artifact_manager=None,
     frame_extraction_mode: str = "fixed_count",
     frame_count: int = 3,
+    headless: bool = False,
 ) -> tuple[bool, list[str], str]:
     """
     Saves the code to a file, extracts scene names, and runs each scene individually.
@@ -58,7 +59,8 @@ def run_manim_multiscene(
     # catch syntaxerrors
     if isinstance(scene_names, Exception):
         error_msg = f"Code parsing failed: {str(scene_names)}\n\nGenerated code has syntax errors and cannot be executed."
-        console.print(f"[red]Code parsing error: {str(scene_names)}[/red]")
+        if not headless:
+            console.print(f"[red]Code parsing error: {str(scene_names)}[/red]")
         return False, [], error_msg
 
     combined_logs = ""
@@ -66,7 +68,7 @@ def run_manim_multiscene(
 
     # Run each scene
     for scene in scene_names:
-        with console.status(f"[bold blue]Rendering scene {scene}..."):
+        if headless:
             command = [
                 "manim",
                 "-ql",  # low quality for speed; produces 480p15 folder
@@ -78,24 +80,38 @@ def run_manim_multiscene(
             process = subprocess.run(
                 command, text=True, capture_output=True, env=os.environ.copy()
             )
+        else:
+            with console.status(f"[bold blue]Rendering scene {scene}..."):
+                command = [
+                    "manim",
+                    "-ql",  # low quality for speed; produces 480p15 folder
+                    "--media_dir",
+                    output_media_dir,
+                    filename,
+                    scene,
+                ]
+                process = subprocess.run(
+                    command, text=True, capture_output=True, env=os.environ.copy()
+                )
 
-            # get output for each scene
-            stdout = process.stdout
-            stderr = process.stderr
-            log_entry = (
-                f"<{scene}>\n"
-                f"\t<STDOUT>\n"
-                f"\t\t{stdout}\n"
-                f"\t</STDOUT>\n"
-                f"\t<STDERR>\n"
-                f"\t\t{stderr}\n"
-                f"\t</STDERR>\n"
-                f"</{scene}>\n\n"
-            )
-            combined_logs += log_entry
+        # get output for each scene
+        stdout = process.stdout
+        stderr = process.stderr
+        log_entry = (
+            f"<{scene}>\n"
+            f"\t<STDOUT>\n"
+            f"\t\t{stdout}\n"
+            f"\t</STDOUT>\n"
+            f"\t<STDERR>\n"
+            f"\t\t{stderr}\n"
+            f"\t</STDERR>\n"
+            f"</{scene}>\n\n"
+        )
+        combined_logs += log_entry
 
-            if process.returncode != 0:
-                overall_success = False
+        if process.returncode != 0:
+            overall_success = False
+            if not headless:
                 console.print(
                     f"[red]Rendering scene {scene} failed with exit code {process.returncode}[/red]"
                 )
@@ -137,24 +153,28 @@ def run_manim_multiscene(
                                 frames.append((frame_name, data_url))
                             else:
                                 overall_success = False
-                                console.print(
-                                    f"[yellow]Failed to encode frame {idx + 1} for {scene_video_path}[/yellow]"
-                                )
+                                if not headless:
+                                    console.print(
+                                        f"[yellow]Failed to encode frame {idx + 1} for {scene_video_path}[/yellow]"
+                                    )
                     else:
                         overall_success = False
-                        console.print(
-                            f"[yellow]No suitable frames extracted from {scene_video_path}[/yellow]"
-                        )
+                        if not headless:
+                            console.print(
+                                f"[yellow]No suitable frames extracted from {scene_video_path}[/yellow]"
+                            )
                 except Exception as e:
                     overall_success = False
-                    console.print(
-                        f"[red]Error extracting frame from {scene_video_path}: {e}[/red]"
-                    )
+                    if not headless:
+                        console.print(
+                            f"[red]Error extracting frame from {scene_video_path}: {e}[/red]"
+                        )
             else:
                 overall_success = False
-                console.print(
-                    f"[red]Video file not found for scene {scene} at {scene_video_path}[/red]"
-                )
+                if not headless:
+                    console.print(
+                        f"[red]Video file not found for scene {scene} at {scene_video_path}[/red]"
+                    )
 
         # save artifacts (e.g extracted frames) using scene names
         if step_name and artifact_manager and frames:
@@ -173,19 +193,32 @@ def run_manim_multiscene(
 
         # Clean up video files after extracting frames to prevent old videos
         # from previous iterations affecting scene counting
-        with console.status("[bold blue]Cleaning up video files..."):
+        if headless:
             for scene in scene_names:
                 scene_video_path = os.path.join(video_base_path, f"{scene}.mp4")
                 if os.path.exists(scene_video_path):
                     try:
                         os.remove(scene_video_path)
                     except Exception as e:
-                        console.print(
-                            f"[yellow]Warning: Could not delete {scene_video_path}: {e}[/yellow]"
-                        )
+                        if not headless:
+                            console.print(
+                                f"[yellow]Warning: Could not delete {scene_video_path}: {e}[/yellow]"
+                            )
+        else:
+            with console.status("[bold blue]Cleaning up video files..."):
+                for scene in scene_names:
+                    scene_video_path = os.path.join(video_base_path, f"{scene}.mp4")
+                    if os.path.exists(scene_video_path):
+                        try:
+                            os.remove(scene_video_path)
+                        except Exception as e:
+                            console.print(
+                                f"[yellow]Warning: Could not delete {scene_video_path}: {e}[/yellow]"
+                            )
     else:
         overall_success = False
-        console.print(f"[red]Video directory not found at {video_base_path}[/red]")
+        if not headless:
+            console.print(f"[red]Video directory not found at {video_base_path}[/red]")
 
     return overall_success, [data_url for _, data_url in frames], combined_logs
 

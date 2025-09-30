@@ -152,6 +152,12 @@ class Config:
             default=DEFAULT_CONFIG["frame_count"],
             help="Number of frames to extract when using fixed_count mode",
         )
+        parser.add_argument(
+            "--headless",
+            action="store_true",
+            default=False,
+            help="Suppress most output and show only a single progress bar",
+        )
 
         return parser
 
@@ -200,7 +206,7 @@ class Config:
                         }
                     ],
                 )
-                short_file_desc = response.choices[0].message.content
+                short_file_desc = f"output_{response.choices[0].message.content}"
             except Exception as e:
                 print(e)
                 self.console.print(
@@ -209,7 +215,8 @@ class Config:
 
         if not output_dir:
             output_dir = f"{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            print("File descriptor: " + short_file_desc)
+            if not args.headless:
+                print("File descriptor: " + short_file_desc)
         # Check if both models support vision/images
         main_vision_support = (
             supports_vision(model=args.manim_model) or args.force_vision
@@ -219,23 +226,24 @@ class Config:
         )
         vision_enabled = main_vision_support and review_vision_support
 
-        # Display vision support as a table
-        table = Table(title="Vision Support Check")
-        table.add_column("Component", style="cyan")
-        table.add_column("Status", style="bold")
-        table.add_row(
-            "Main Model",
-            f"[{'green' if main_vision_support else 'yellow'}]{'Enabled' if main_vision_support else 'Disabled'}[/{'green' if main_vision_support else 'yellow'}]",
-        )
-        table.add_row(
-            "Review Model",
-            f"[{'green' if review_vision_support else 'yellow'}]{'Enabled' if review_vision_support else 'Disabled'}[/{'green' if review_vision_support else 'yellow'}]",
-        )
-        table.add_row(
-            "Combined",
-            f"[{'green' if vision_enabled else 'yellow'}]{'Enabled' if vision_enabled else 'Disabled'}[/{'green' if vision_enabled else 'yellow'}]",
-        )
-        self.console.print(table)
+        # Display vision support as a table (unless headless)
+        if not args.headless:
+            table = Table(title="Vision Support Check")
+            table.add_column("Component", style="cyan")
+            table.add_column("Status", style="bold")
+            table.add_row(
+                "Main Model",
+                f"[{'green' if main_vision_support else 'yellow'}]{'Enabled' if main_vision_support else 'Disabled'}[/{'green' if main_vision_support else 'yellow'}]",
+            )
+            table.add_row(
+                "Review Model",
+                f"[{'green' if review_vision_support else 'yellow'}]{'Enabled' if review_vision_support else 'Disabled'}[/{'green' if review_vision_support else 'yellow'}]",
+            )
+            table.add_row(
+                "Combined",
+                f"[{'green' if vision_enabled else 'yellow'}]{'Enabled' if vision_enabled else 'Disabled'}[/{'green' if vision_enabled else 'yellow'}]",
+            )
+            self.console.print(table)
 
         # Build reasoning config
         reasoning_config = {}
@@ -261,4 +269,5 @@ class Config:
             "success_threshold": args.success_threshold,
             "frame_extraction_mode": args.frame_extraction_mode,
             "frame_count": args.frame_count,
+            "headless": args.headless,
         }
