@@ -3,27 +3,27 @@ from rich.prompt import Confirm
 from rich.panel import Panel
 from rich.markdown import Markdown
 
-from src.artifacts import ArtifactManager
-from src.utils.usage import TokenUsageTracker
-from src.utils.rendering import (
+from manim_generator.artifacts import ArtifactManager
+from manim_generator.utils.usage import TokenUsageTracker
+from manim_generator.utils.rendering import (
     extract_scene_class_names,
     run_manim_multiscene,
     calculate_scene_success_rate,
 )
-from src.utils.file import save_code_to_file
-from src.console import (
+from manim_generator.utils.file import save_code_to_file
+from manim_generator.console import (
     get_response_with_status,
     print_code_with_syntax,
     HeadlessProgressManager,
 )
-from src.utils.prompt import (
+from manim_generator.utils.prompt import (
     convert_frames_to_message_format,
     format_previous_reviews,
     format_prompt,
 )
-from src.utils.video import render_and_concat
-from src.utils.llm import check_and_register_models
-from src.utils.parsing import parse_code_block
+from manim_generator.utils.video import render_and_concat
+from manim_generator.utils.llm import check_and_register_models
+from manim_generator.utils.parsing import parse_code_block
 
 
 class ManimWorkflow:

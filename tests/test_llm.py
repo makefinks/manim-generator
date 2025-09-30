@@ -2,7 +2,7 @@
 
 import unittest
 from unittest.mock import Mock, patch, MagicMock
-from src.utils.llm import (
+from manim_generator.utils.llm import (
     check_and_register_models,
     _build_litellm_args,
     get_completion_with_retry,
@@ -87,9 +87,9 @@ class TestBuildLiteLLMArgs(unittest.TestCase):
 class TestCheckAndRegisterModels(unittest.TestCase):
     """Test cases for check_and_register_models function."""
 
-    @patch("src.utils.llm.model_cost", {})
-    @patch("src.utils.llm.Prompt.ask")
-    @patch("src.utils.llm.register_model")
+    @patch("manim_generator.utils.llm.model_cost", {})
+    @patch("manim_generator.utils.llm.Prompt.ask")
+    @patch("manim_generator.utils.llm.register_model")
     def test_register_model_with_costs(self, mock_register, mock_ask):
         """Test registering a new model with costs."""
         console = Console()
@@ -101,14 +101,14 @@ class TestCheckAndRegisterModels(unittest.TestCase):
         call_args = mock_register.call_args[0][0]
         self.assertIn("test-model", call_args)
 
-    @patch("src.utils.llm.model_cost", {})
+    @patch("manim_generator.utils.llm.model_cost", {})
     def test_register_model_headless(self):
         """Test that headless mode skips registration."""
         console = Console()
         # Should not raise any errors or prompt
         check_and_register_models(["unknown-model"], console, headless=True)
 
-    @patch("src.utils.llm.model_cost", {"gpt-4": {}})
+    @patch("manim_generator.utils.llm.model_cost", {"gpt-4": {}})
     def test_skip_registered_model(self):
         """Test that already registered models are skipped."""
         console = Console()
@@ -119,8 +119,8 @@ class TestCheckAndRegisterModels(unittest.TestCase):
 class TestGetCompletionWithRetry(unittest.TestCase):
     """Test cases for get_completion_with_retry function."""
 
-    @patch("src.utils.llm.completion_cost")
-    @patch("src.utils.llm.completion")
+    @patch("manim_generator.utils.llm.completion_cost")
+    @patch("manim_generator.utils.llm.completion")
     def test_successful_completion(self, mock_completion, mock_cost):
         """Test successful completion request."""
         # Create nested dict structure matching litellm response
@@ -147,7 +147,7 @@ class TestGetCompletionWithRetry(unittest.TestCase):
         self.assertEqual(usage["cost"], 0.001)
         self.assertIsNone(reasoning)
 
-    @patch("src.utils.llm.completion")
+    @patch("manim_generator.utils.llm.completion")
     def test_completion_with_reasoning(self, mock_completion):
         """Test completion with reasoning content."""
         # Create message object with reasoning_content attribute
@@ -178,7 +178,7 @@ class TestGetCompletionWithRetry(unittest.TestCase):
 class TestGetStreamingCompletionWithRetry(unittest.TestCase):
     """Test cases for get_streaming_completion_with_retry function."""
 
-    @patch("src.utils.llm.completion")
+    @patch("manim_generator.utils.llm.completion")
     def test_streaming_completion(self, mock_completion):
         """Test streaming completion request."""
         mock_chunk1 = MagicMock()

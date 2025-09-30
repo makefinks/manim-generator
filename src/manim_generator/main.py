@@ -2,10 +2,10 @@ import time
 from rich.console import Console
 from rich.panel import Panel
 
-from src.utils.config import Config
-from src.workflow import ManimWorkflow
-from src.utils.file import load_video_data
-from src.utils.usage import (
+from manim_generator.utils.config import Config
+from manim_generator.workflow import ManimWorkflow
+from manim_generator.utils.file import load_video_data
+from manim_generator.utils.usage import (
     display_usage_summary,
     save_usage_report,
     save_workflow_metadata,

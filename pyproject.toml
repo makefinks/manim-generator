@@ -1,19 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "manim-video"
+name = "manim-generator"
 version = "0.1.0"
 description = "Automatic video generation using an agentic LLM flow in combination with the manim python library."
 readme = "README.md"
-License = "MIT"
+license = { text = "MIT" }
 requires-python = ">=3.10"
+keywords = ["manim", "video", "generation", "llm", "ai"]
 dependencies = [
-    "litellm>=1.59.8",
-    "manim>=0.17.0",
-    "opencv-python>=4.11.0.86",
-    "ruff>=0.12.5",
-    "setuptools>=79.0.0",
+  "litellm>=1.59.8",
+  "manim>=0.17.0",
+  "opencv-python>=4.11.0.86",
+  "python-dotenv>=1.0.0",
+  "rich>=13.0.0",
 ]
 
 [project.optional-dependencies]
-test = [
-    "pytest>=8.0.0",
-]
+dev = ["ruff>=0.12.5", "pytest>=8.0.0", "mypy>=1.0.0"]
+test = ["pytest>=8.0.0"]
+
+[project.scripts]
+manim-generate = "manim_generator.main:main"
+manim-render = "manim_generator.cli:manual_render"
+
+[tool.uv]
+dev-dependencies = ["ruff>=0.12.5", "pytest>=8.0.0", "mypy>=1.0.0"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true

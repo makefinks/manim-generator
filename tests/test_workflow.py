@@ -6,9 +6,9 @@ import os
 import shutil
 from unittest.mock import Mock, patch, MagicMock
 from rich.console import Console
-from src.workflow import ManimWorkflow
-from src.utils.usage import TokenUsageTracker
-from src.artifacts import ArtifactManager
+from manim_generator.workflow import ManimWorkflow
+from manim_generator.utils.usage import TokenUsageTracker
+from manim_generator.artifacts import ArtifactManager
 
 
 class TestManimWorkflow(unittest.TestCase):
@@ -40,7 +40,7 @@ class TestManimWorkflow(unittest.TestCase):
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
-    @patch("src.workflow.check_and_register_models")
+    @patch("manim_generator.workflow.check_and_register_models")
     def test_workflow_initialization(self, mock_check):
         """Test that ManimWorkflow initializes correctly."""
         workflow = ManimWorkflow(
@@ -54,8 +54,8 @@ class TestManimWorkflow(unittest.TestCase):
         self.assertEqual(workflow.execution_count, 0)
         self.assertFalse(workflow.initial_success)
 
-    @patch("src.workflow.check_and_register_models")
-    @patch("src.workflow.get_response_with_status")
+    @patch("manim_generator.workflow.check_and_register_models")
+    @patch("manim_generator.workflow.get_response_with_status")
     def test_generate_initial_code(self, mock_get_response, mock_check):
         """Test initial code generation."""
         mock_get_response.return_value = (

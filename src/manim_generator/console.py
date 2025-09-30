@@ -7,7 +7,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.markdown import CodeBlock, Markdown
 import time
 
-from src.utils.llm import get_completion_with_retry, get_streaming_completion_with_retry
+from manim_generator.utils.llm import get_completion_with_retry, get_streaming_completion_with_retry
 
 
 class HeadlessProgressManager:

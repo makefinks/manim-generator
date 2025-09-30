@@ -4,7 +4,7 @@ import unittest
 import json
 import tempfile
 import os
-from src.utils.usage import TokenUsageTracker, format_duration
+from manim_generator.utils.usage import TokenUsageTracker, format_duration
 
 
 class TestTokenUsageTracker(unittest.TestCase):

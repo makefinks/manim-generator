@@ -5,7 +5,7 @@ import tempfile
 import os
 import shutil
 from rich.console import Console
-from src.artifacts import ArtifactManager
+from manim_generator.artifacts import ArtifactManager
 
 
 class TestArtifactManager(unittest.TestCase):

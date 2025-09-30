@@ -3,7 +3,7 @@
 import unittest
 import tempfile
 import os
-from src.utils.prompt import (
+from manim_generator.utils.prompt import (
     format_prompt,
     format_previous_reviews,
     convert_frames_to_message_format,

@@ -14,8 +14,8 @@ from rich.console import Console
 import cv2
 import numpy as np
 
-from src.utils.file import save_code_to_file
-from src.utils.parsing import extract_scene_class_names
+from manim_generator.utils.file import save_code_to_file
+from manim_generator.utils.parsing import extract_scene_class_names
 
 logger = logging.getLogger(__name__)
 

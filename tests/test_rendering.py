@@ -5,7 +5,7 @@ import tempfile
 import os
 import numpy as np
 from unittest.mock import Mock, patch, MagicMock
-from src.utils.rendering import (
+from manim_generator.utils.rendering import (
     calculate_scene_success_rate,
     extract_frames_from_video,
 )
@@ -85,7 +85,7 @@ class TestCalculateSceneSuccessRate(unittest.TestCase):
 class TestExtractFramesFromVideo(unittest.TestCase):
     """Test cases for extract_frames_from_video function."""
 
-    @patch("src.utils.rendering.cv2.VideoCapture")
+    @patch("manim_generator.utils.rendering.cv2.VideoCapture")
     def test_fixed_count_mode(self, mock_capture):
         """Test extracting fixed count of frames."""
         mock_cap = MagicMock()
@@ -103,7 +103,7 @@ class TestExtractFramesFromVideo(unittest.TestCase):
             self.assertEqual(len(frames), 3)
         mock_cap.release.assert_called_once()
 
-    @patch("src.utils.rendering.cv2.VideoCapture")
+    @patch("manim_generator.utils.rendering.cv2.VideoCapture")
     def test_highest_density_mode(self, mock_capture):
         """Test extracting highest density frame."""
         mock_cap = MagicMock()
@@ -126,7 +126,7 @@ class TestExtractFramesFromVideo(unittest.TestCase):
             self.assertEqual(len(frames), 1)
         mock_cap.release.assert_called_once()
 
-    @patch("src.utils.rendering.cv2.VideoCapture")
+    @patch("manim_generator.utils.rendering.cv2.VideoCapture")
     def test_video_not_opened(self, mock_capture):
         """Test handling when video cannot be opened."""
         mock_cap = MagicMock()
@@ -137,7 +137,7 @@ class TestExtractFramesFromVideo(unittest.TestCase):
 
         self.assertIsNone(frames)
 
-    @patch("src.utils.rendering.cv2.VideoCapture")
+    @patch("manim_generator.utils.rendering.cv2.VideoCapture")
     def test_empty_video(self, mock_capture):
         """Test handling empty video with zero frames."""
         mock_cap = MagicMock()
@@ -149,7 +149,7 @@ class TestExtractFramesFromVideo(unittest.TestCase):
 
         self.assertIsNone(frames)
 
-    @patch("src.utils.rendering.cv2.VideoCapture")
+    @patch("manim_generator.utils.rendering.cv2.VideoCapture")
     def test_invalid_mode(self, mock_capture):
         """Test handling invalid extraction mode."""
         mock_cap = MagicMock()
