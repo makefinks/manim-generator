@@ -32,8 +32,6 @@ def main():
     current_code, main_messages = workflow.generate_initial_code(video_data)
     success, last_frames, combined_logs = workflow.execute_code(current_code, "Initial")
     workflow.initial_success = success
-    workflow.execution_count += 1
-    workflow.successful_executions += 1 if success else 0
     working_code = current_code if success else None
 
     if not working_code and not headless:

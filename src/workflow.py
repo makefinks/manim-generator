@@ -148,10 +148,9 @@ class ManimWorkflow:
         if not self.headless:
             self._display_execution_status(success, frames, code, logs)
 
-        if step_name != "Initial":
-            self.execution_count += 1
-            if success:
-                self.successful_executions += 1
+        self.execution_count += 1
+        if success:
+            self.successful_executions += 1
 
         if self.headless and self.headless_manager:
             self.headless_manager.increment_execution(success)
@@ -169,7 +168,7 @@ class ManimWorkflow:
         status_color = "green" if success else "red"
 
         scene_names = extract_scene_class_names(code)
-        scenes_rendered = f"{int(len(frames) / self.config['frame_count'])} of {len(scene_names) if isinstance(scene_names, list) else '? (Syntax error)'}"
+        scenes_rendered = f"{len(frames) // self.config['frame_count']} of {len(scene_names) if isinstance(scene_names, list) else '? (Syntax error)'}"
 
         self.console.print(
             f"[bold {status_color}]Execution Status: {'Success' if success else 'Failed'}[/bold {status_color}]"

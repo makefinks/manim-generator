@@ -3,11 +3,16 @@
 import re
 import time
 from collections.abc import Generator
-from litellm import completion, completion_cost, model_cost, register_model
+from typing import Any
+
+from litellm import completion, model_cost
 import litellm
 from openai import RateLimitError
 from rich.console import Console
 from rich.prompt import Prompt
+
+from litellm.cost_calculator import completion_cost  # type: ignore
+from litellm.utils import register_model  # type: ignore
 
 
 # for safety drop unsupported params
@@ -94,9 +99,9 @@ def _build_litellm_args(
     stream: bool,
     reasoning: dict | None,
     provider: str | None,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     """Builds a standardized argument dict for litellm.completion."""
-    args: dict[str, object] = {
+    args: dict[str, Any] = {
         "model": model,
         "messages": messages,
         "temperature": temperature,
@@ -157,8 +162,8 @@ def get_completion_with_retry(
                 provider=provider,
             )
 
-            response = completion(**completion_args)
-            response_content = response["choices"][0]["message"]["content"]
+            response = completion(**completion_args)  # type: ignore
+            response_content = response["choices"][0]["message"]["content"]  # type: ignore
 
             try:
                 # calculates cost for models - only fails if model not registered and user skipped manual registration
@@ -169,21 +174,21 @@ def get_completion_with_retry(
             # Extract usage information
             usage_info = {
                 "model": model,
-                "prompt_tokens": response.usage.prompt_tokens
-                if hasattr(response, "usage") and response.usage
+                "prompt_tokens": response.usage.prompt_tokens  # type: ignore
+                if hasattr(response, "usage") and response.usage  # type: ignore
                 else 0,
-                "completion_tokens": response.usage.completion_tokens
-                if hasattr(response, "usage") and response.usage
+                "completion_tokens": response.usage.completion_tokens  # type: ignore
+                if hasattr(response, "usage") and response.usage  # type: ignore
                 else 0,
-                "total_tokens": response.usage.total_tokens
-                if hasattr(response, "usage") and response.usage
+                "total_tokens": response.usage.total_tokens  # type: ignore
+                if hasattr(response, "usage") and response.usage  # type: ignore
                 else 0,
                 "cost": cost,
             }
 
             # extract reasoning content if available
             reasoning_content = None
-            message = response["choices"][0]["message"]
+            message = response["choices"][0]["message"]  # type: ignore
             if hasattr(message, "reasoning_content") and message.reasoning_content:
                 reasoning_content = message.reasoning_content
 
@@ -217,7 +222,7 @@ def get_completion_with_retry(
             }
             return "Review model failed to generate response.", empty_usage, None
 
-    raise Exception("[bold red]Max retries exceeded. bold red]")
+    raise Exception("[bold red]Max retries exceeded.[/bold red]")
 
 
 def get_streaming_completion_with_retry(
@@ -262,7 +267,7 @@ def get_streaming_completion_with_retry(
                 provider=provider,
             )
 
-            response = completion(**completion_args)
+            response = completion(**completion_args)  # type: ignore
             full_response = ""
             empty_usage = {
                 "model": model,
@@ -274,7 +279,7 @@ def get_streaming_completion_with_retry(
 
             for chunk in response:
                 try:
-                    token = chunk.choices[0].delta.content or ""
+                    token = chunk.choices[0].delta.content or ""  # type: ignore
                     full_response += token
                     yield (token, full_response, empty_usage)
                 except Exception as e:
@@ -302,4 +307,4 @@ def get_streaming_completion_with_retry(
                 time.sleep(wait_time)
             retries += 1
 
-    raise Exception("[bold red]Max retries exceeded. bold red]")
+    raise Exception("[bold red]Max retries exceeded.[/bold red]")
