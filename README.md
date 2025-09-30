@@ -77,49 +77,50 @@ The script supports the following command-line arguments:
 
 #### Video Data Input
 
-| Argument            | Description                                        | Default          |
-| ------------------- | -------------------------------------------------- | ---------------- |
-| `--video_data`      | Description of the video to generate (text string) | -                |
-| `--video_data_file` | Path to file containing video description          | "video_data.txt" |
+| Argument              | Description                                        | Default          |
+| --------------------- | -------------------------------------------------- | ---------------- |
+| `--video-data`        | Description of the video to generate (text string) | -                |
+| `--video-data-file`   | Path to file containing video description          | "video_data.txt" |
 
 #### Model Configuration
 
-| Argument         | Description                                                                              | Default                                |
-| ---------------- | ---------------------------------------------------------------------------------------- | -------------------------------------- |
-| `--manim_model`  | Model to use for generating Manim code                                                   | "openrouter/anthropic/claude-sonnet-4" |
-| `--review_model` | Model to use for reviewing code                                                          | "openrouter/anthropic/claude-sonnet-4" |
-| `--streaming`    | Enable streaming responses from the model                                                | False                                  |
-| `--temperature`  | Temperature for the LLM Model                                                            | 0.4                                    |
-| `--force_vision` | Adds images to the review process, regardless if LiteLLM reports vision is not supported | -                                      |
-| `--provider`     | Specific provider to use for OpenRouter requests (e.g., 'anthropic', 'openai')           | -                                      |
+| Argument           | Description                                                                              | Default                                |
+| ------------------ | ---------------------------------------------------------------------------------------- | -------------------------------------- |
+| `--manim-model`    | Model to use for generating Manim code                                                   | "openrouter/anthropic/claude-sonnet-4" |
+| `--review-model`   | Model to use for reviewing code                                                          | "openrouter/anthropic/claude-sonnet-4" |
+| `--streaming`      | Enable streaming responses from the model                                                | False                                  |
+| `--temperature`    | Temperature for the LLM Model                                                            | 0.4                                    |
+| `--force-vision`   | Adds images to the review process, regardless if LiteLLM reports vision is not supported | -                                      |
+| `--provider`       | Specific provider to use for OpenRouter requests (e.g., 'anthropic', 'openai')           | -                                      |
 
 #### Process Configuration
 
-| Argument                  | Description                                                                                 | Default                                        |
-| ------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `--review_cycles`         | Number of review cycles to perform                                                          | 5                                              |
-| `--manim_logs`            | Show Manim execution logs                                                                   | False                                          |
-| `--output_dir`            | Directory for generated artifacts (overrides auto-naming)                                   | Auto (e.g., `manim_animation_20250101_120000`) |
-| `--success_threshold`     | Percentage of scenes that must render successfully to trigger enhanced visual review mode   | 100                                            |
-| `--frame_extraction_mode` | Frame extraction mode: highest_density (single best frame) or fixed_count (multiple frames) | "fixed_count"                                  |
-| `--frame_count`           | Number of frames to extract when using fixed_count mode                                     | 3                                              |
+| Argument                    | Description                                                                                 | Default                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `--review-cycles`           | Number of review cycles to perform                                                          | 5                                              |
+| `--manim-logs`              | Show Manim execution logs                                                                   | False                                          |
+| `--output-dir`              | Directory for generated artifacts (overrides auto-naming)                                   | Auto (e.g., `manim_animation_20250101_120000`) |
+| `--success-threshold`       | Percentage of scenes that must render successfully to trigger enhanced visual review mode   | 100                                            |
+| `--frame-extraction-mode`   | Frame extraction mode: highest_density (single best frame) or fixed_count (multiple frames) | "fixed_count"                                  |
+| `--frame-count`             | Number of frames to extract when using fixed_count mode                                     | 3                                              |
+| `--headless`                | Suppress most output and show only a single progress bar                                    | False                                          |
 
 #### Reasoning Tokens Configuration
 
-| Argument                 | Description                                                                                  | Default |
-| ------------------------ | -------------------------------------------------------------------------------------------- | ------- |
-| `--reasoning_effort`     | Reasoning effort level for OpenAI-style models (choices: "minimal", "low", "medium", "high") | -       |
-| `--reasoning_max_tokens` | Maximum tokens for reasoning (Anthropic-style)                                               | -       |
-| `--reasoning_exclude`    | Exclude reasoning tokens from response (model still uses reasoning internally)               | -       |
+| Argument                   | Description                                                                                  | Default |
+| -------------------------- | -------------------------------------------------------------------------------------------- | ------- |
+| `--reasoning-effort`       | Reasoning effort level for OpenAI-style models (choices: "minimal", "low", "medium", "high") | -       |
+| `--reasoning-max-tokens`   | Maximum tokens for reasoning (Anthropic-style)                                               | -       |
+| `--reasoning-exclude`      | Exclude reasoning tokens from response (model still uses reasoning internally)               | -       |
 
-> Note: You cannot use both `--reasoning_effort` and `--reasoning_max_tokens` at the same time.
+> Note: You cannot use both `--reasoning-effort` and `--reasoning-max-tokens` at the same time.
 
-Providing `--output_dir` skips the automatic descriptor-based folder name and uses the supplied path instead.
+Providing `--output-dir` skips the automatic descriptor-based folder name and uses the supplied path instead.
 
 ### Example
 
 ```bash
-python generate.py --video_data "Explain the concept of neural networks with visual examples" --manim_model "openrouter/anthropic/claude-sonnet-4" --review_model "openrouter/anthropic/claude-sonnet-4" --review_cycles 3
+python generate.py --video-data "Explain the concept of neural networks with visual examples" --manim-model "openrouter/anthropic/claude-sonnet-4" --review-model "openrouter/anthropic/claude-sonnet-4" --review-cycles 3
 ```
 
 ### 3. Configure image support

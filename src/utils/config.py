@@ -7,8 +7,8 @@ from litellm import supports_vision, completion
 
 # Default configuration
 DEFAULT_CONFIG = {
-    "manim_model": "openrouter/anthropic/claude-sonnet-4",
-    "review_model": "openrouter/anthropic/claude-sonnet-4",
+    "manim_model": "openrouter/x-ai/grok-code-fast-1",
+    "review_model": "openrouter/x-ai/grok-code-fast-1",
     "review_cycles": 5,
     "manim_logs": False,
     "streaming": False,
@@ -47,10 +47,10 @@ class Config:
 
         # Video data input
         parser.add_argument(
-            "--video_data", type=str, help="Description of the video to generate"
+            "--video-data", type=str, help="Description of the video to generate"
         )
         parser.add_argument(
-            "--video_data_file",
+            "--video-data-file",
             type=str,
             default="video_data.txt",
             help="Path to file containing video description",
@@ -58,13 +58,13 @@ class Config:
 
         # Model configuration
         parser.add_argument(
-            "--manim_model",
+            "--manim-model",
             type=str,
             default=DEFAULT_CONFIG["manim_model"],
             help="Model to use for generating Manim code",
         )
         parser.add_argument(
-            "--review_model",
+            "--review-model",
             type=str,
             default=DEFAULT_CONFIG["review_model"],
             help="Model to use for reviewing code",
@@ -72,13 +72,13 @@ class Config:
 
         # Process configuration
         parser.add_argument(
-            "--review_cycles",
+            "--review-cycles",
             type=int,
             default=DEFAULT_CONFIG["review_cycles"],
             help="Number of review cycles to perform",
         )
         parser.add_argument(
-            "--output_dir",
+            "--output-dir",
             type=str,
             default=None,
             help=(
@@ -86,7 +86,7 @@ class Config:
             ),
         )
         parser.add_argument(
-            "--manim_logs",
+            "--manim-logs",
             action="store_true",
             default=DEFAULT_CONFIG["manim_logs"],
             help="Show Manim execution logs",
@@ -104,7 +104,7 @@ class Config:
         )
 
         parser.add_argument(
-            "--force_vision",
+            "--force-vision",
             action="store_true",
             default=False,
             help="Adds images to the review process, regardless if LiteLLM reports vision is not supported. (Check API provider)",
@@ -117,37 +117,37 @@ class Config:
 
         # Reasoning tokens configuration
         parser.add_argument(
-            "--reasoning_effort",
+            "--reasoning-effort",
             type=str,
             choices=["minimal", "low", "medium", "high"],
             help="Reasoning effort level for OpenAI-style models (minimal/low/medium/high). Note: Minimal is only to be used with GPT-5",
         )
         parser.add_argument(
-            "--reasoning_max_tokens",
+            "--reasoning-max-tokens",
             type=int,
             help="Maximum tokens for reasoning (Anthropic-style)",
         )
         parser.add_argument(
-            "--reasoning_exclude",
+            "--reasoning-exclude",
             action="store_true",
             default=False,
             help="Exclude reasoning tokens from response (model still uses reasoning internally)",
         )
         parser.add_argument(
-            "--success_threshold",
+            "--success-threshold",
             type=float,
             default=DEFAULT_CONFIG["success_threshold"],
             help="Percentage of scenes that must render successfully to trigger enhanced visual review mode (focuses on creative improvements instead of technical fixes)",
         )
         parser.add_argument(
-            "--frame_extraction_mode",
+            "--frame-extraction-mode",
             type=str,
             default=DEFAULT_CONFIG["frame_extraction_mode"],
             choices=["highest_density", "fixed_count"],
             help="Frame extraction mode: highest_density (single best frame) or fixed_count (multiple frames)",
         )
         parser.add_argument(
-            "--frame_count",
+            "--frame-count",
             type=int,
             default=DEFAULT_CONFIG["frame_count"],
             help="Number of frames to extract when using fixed_count mode",
@@ -206,7 +206,7 @@ class Config:
                         }
                     ],
                 )
-                short_file_desc = f"output_{response.choices[0].message.content}"
+                short_file_desc = f"{response.choices[0].message.content}"
             except Exception as e:
                 print(e)
                 self.console.print(
@@ -214,7 +214,9 @@ class Config:
                 )
 
         if not output_dir:
-            output_dir = f"{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            output_dir = (
+                f"output/{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            )
             if not args.headless:
                 print("File descriptor: " + short_file_desc)
         # Check if both models support vision/images
