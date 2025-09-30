@@ -1,14 +1,16 @@
 """Tests for the LLM utilities."""
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+from rich.console import Console
+
 from manim_generator.utils.llm import (
-    check_and_register_models,
     _build_litellm_args,
+    check_and_register_models,
     get_completion_with_retry,
     get_streaming_completion_with_retry,
 )
-from rich.console import Console
 
 
 class TestBuildLiteLLMArgs(unittest.TestCase):
@@ -153,7 +155,7 @@ class TestGetCompletionWithRetry(unittest.TestCase):
         # Create message object with reasoning_content attribute
         mock_message = MagicMock()
         mock_message.reasoning_content = "Test reasoning"
-        
+
         # Create nested dict structure matching litellm response
         mock_response = MagicMock()
         mock_response.__getitem__ = MagicMock(side_effect=lambda key: {

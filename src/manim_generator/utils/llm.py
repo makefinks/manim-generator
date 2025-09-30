@@ -5,15 +5,13 @@ import time
 from collections.abc import Generator
 from typing import Any
 
-from litellm import completion, model_cost
 import litellm
+from litellm import completion, model_cost
+from litellm.cost_calculator import completion_cost  # type: ignore
+from litellm.utils import register_model  # type: ignore
 from openai import RateLimitError
 from rich.console import Console
 from rich.prompt import Prompt
-
-from litellm.cost_calculator import completion_cost  # type: ignore
-from litellm.utils import register_model  # type: ignore
-
 
 # for safety drop unsupported params
 litellm.drop_params = True

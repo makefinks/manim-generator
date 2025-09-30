@@ -1,7 +1,9 @@
 """Utility functions for preserving workflow artifacts and debugging information."""
 
 import os
+
 from rich.console import Console
+
 
 class ArtifactManager:
     """Manages preservation of workflow artifacts"""

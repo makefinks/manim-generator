@@ -1,10 +1,12 @@
 """Tests for the artifacts module."""
 
-import unittest
-import tempfile
 import os
 import shutil
+import tempfile
+import unittest
+
 from rich.console import Console
+
 from manim_generator.artifacts import ArtifactManager
 
 
@@ -46,7 +48,7 @@ class TestArtifactManager(unittest.TestCase):
         code_file = os.path.join(self.temp_dir, "steps", step_name, "code.py")
         self.assertTrue(os.path.exists(code_file))
 
-        with open(code_file, "r") as f:
+        with open(code_file) as f:
             content = f.read()
         self.assertEqual(content, code)
 
@@ -62,7 +64,7 @@ class TestArtifactManager(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(prompt_file))
 
-        with open(prompt_file, "r") as f:
+        with open(prompt_file) as f:
             content = f.read()
         self.assertEqual(content, prompt)
 
@@ -78,7 +80,7 @@ class TestArtifactManager(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(logs_file))
 
-        with open(logs_file, "r") as f:
+        with open(logs_file) as f:
             content = f.read()
         self.assertEqual(content, logs)
 
@@ -94,7 +96,7 @@ class TestArtifactManager(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(review_file))
 
-        with open(review_file, "r") as f:
+        with open(review_file) as f:
             content = f.read()
         self.assertEqual(content, review)
 
@@ -110,7 +112,7 @@ class TestArtifactManager(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(reasoning_file))
 
-        with open(reasoning_file, "r") as f:
+        with open(reasoning_file) as f:
             content = f.read()
         self.assertEqual(content, reasoning)
 

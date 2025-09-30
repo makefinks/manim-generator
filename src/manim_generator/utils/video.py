@@ -1,8 +1,8 @@
 """Utility functions for video generation and manipulation with Manim."""
 
+import logging
 import os
 import subprocess
-import logging
 
 from manim_generator.utils.rendering import extract_scene_class_names
 
@@ -57,7 +57,7 @@ def render_and_concat(
         logger.info("Manim rendering completed successfully.")
 
     # extract scene names
-    with open(script_file, "r", encoding="utf-8") as f:
+    with open(script_file, encoding="utf-8") as f:
         content = f.read()
     scene_names = extract_scene_class_names(content)
 

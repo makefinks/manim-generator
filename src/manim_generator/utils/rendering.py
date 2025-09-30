@@ -10,9 +10,10 @@ import logging
 import os
 import re
 import subprocess
-from rich.console import Console
+
 import cv2
 import numpy as np
+from rich.console import Console
 
 from manim_generator.utils.file import save_code_to_file
 from manim_generator.utils.parsing import extract_scene_class_names

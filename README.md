@@ -60,7 +60,13 @@ sudo apt-get install texlive texlive-latex-extra texlive-fonts-extra texlive-sci
 
 ### 4. Configure environment variables
 
-Create a `.env` file or export the API key for your preferred provider system-wide. Providers available via [openrouter](https://openrouter.ai/) are supported through LiteLLM.
+Create a `.env` file from the provided template:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` and add your API keys. Providers available via [openrouter](https://openrouter.ai/) are supported through LiteLLM.
 
 ## Usage
 

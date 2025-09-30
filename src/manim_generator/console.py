@@ -1,11 +1,9 @@
-from rich.console import Console, ConsoleOptions, RenderResult
-from rich.syntax import Syntax
-from rich.text import Text
-from rich.live import Live
-from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn, BarColumn
-from rich.markdown import CodeBlock, Markdown
 import time
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+from rich.syntax import Syntax
 
 from manim_generator.utils.llm import get_completion_with_retry, get_streaming_completion_with_retry
 

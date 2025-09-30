@@ -1,9 +1,7 @@
 """Tests for the usage utilities."""
 
 import unittest
-import json
-import tempfile
-import os
+
 from manim_generator.utils.usage import TokenUsageTracker, format_duration
 
 
@@ -30,9 +28,9 @@ class TestTokenUsageTracker(unittest.TestCase):
             "total_tokens": 300,
             "cost": 0.0015
         }
-        
+
         self.tracker.add_step(step_name, model, usage_info)
-        
+
         # Check that step was added correctly
         self.assertEqual(len(self.tracker.token_usage_tracking["steps"]), 1)
         step = self.tracker.token_usage_tracking["steps"][0]
@@ -42,7 +40,7 @@ class TestTokenUsageTracker(unittest.TestCase):
         self.assertEqual(step["completion_tokens"], 200)
         self.assertEqual(step["total_tokens"], 300)
         self.assertEqual(step["cost"], 0.0015)
-        
+
         # Check that totals were updated
         self.assertEqual(self.tracker.token_usage_tracking["total_tokens"], 300)
         self.assertEqual(self.tracker.token_usage_tracking["total_cost"], 0.0015)
@@ -57,10 +55,10 @@ class TestTokenUsageTracker(unittest.TestCase):
             "total_tokens": 400,
             "cost": 0.0020
         }
-        
+
         self.tracker.add_step(step_name, model, usage_info)
         data = self.tracker.get_tracking_data()
-        
+
         self.assertIsInstance(data, dict)
         self.assertIn("steps", data)
         self.assertIn("total_tokens", data)

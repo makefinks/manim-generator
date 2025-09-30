@@ -1,16 +1,17 @@
 import time
+
 from rich.console import Console
 from rich.panel import Panel
 
 from manim_generator.utils.config import Config
-from manim_generator.workflow import ManimWorkflow
 from manim_generator.utils.file import load_video_data
 from manim_generator.utils.usage import (
     display_usage_summary,
+    format_duration,
     save_usage_report,
     save_workflow_metadata,
-    format_duration,
 )
+from manim_generator.workflow import ManimWorkflow
 
 
 def main():
@@ -19,7 +20,7 @@ def main():
 
     config_manager = Config()
     config, video_data_arg, video_data_file = config_manager.parse_arguments()
-    
+
     headless = config.get("headless", False)
 
     if video_data_arg:

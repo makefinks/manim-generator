@@ -1,9 +1,10 @@
-from datetime import datetime
 import argparse
 import os
+from datetime import datetime
+
+from litellm import completion, supports_vision
 from rich.console import Console
 from rich.table import Table
-from litellm import supports_vision, completion
 
 # Default configuration
 DEFAULT_CONFIG = {
@@ -175,7 +176,7 @@ class Config:
         video_data = args.video_data
         if not video_data and args.video_data_file:
             try:
-                with open(args.video_data_file, "r") as f:
+                with open(args.video_data_file) as f:
                     video_data = f.read().strip()
             except FileNotFoundError:
                 self.console.print(

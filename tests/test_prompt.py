@@ -1,12 +1,13 @@
 """Tests for the prompt utilities."""
 
-import unittest
-import tempfile
 import os
+import tempfile
+import unittest
+
 from manim_generator.utils.prompt import (
-    format_prompt,
-    format_previous_reviews,
     convert_frames_to_message_format,
+    format_previous_reviews,
+    format_prompt,
 )
 
 

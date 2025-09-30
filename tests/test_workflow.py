@@ -1,14 +1,16 @@
 """Tests for the main workflow."""
 
-import unittest
-import tempfile
 import os
 import shutil
-from unittest.mock import Mock, patch, MagicMock
+import tempfile
+import unittest
+from unittest.mock import patch
+
 from rich.console import Console
-from manim_generator.workflow import ManimWorkflow
-from manim_generator.utils.usage import TokenUsageTracker
+
 from manim_generator.artifacts import ArtifactManager
+from manim_generator.utils.usage import TokenUsageTracker
+from manim_generator.workflow import ManimWorkflow
 
 
 class TestManimWorkflow(unittest.TestCase):

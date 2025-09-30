@@ -14,3 +14,7 @@ media/
 
 # Outputs
 output_*
+output/
+
+# Environment files
+.env

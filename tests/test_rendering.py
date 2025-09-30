@@ -1,10 +1,10 @@
 """Tests for the rendering utilities."""
 
 import unittest
-import tempfile
-import os
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import Mock, patch, MagicMock
+
 from manim_generator.utils.rendering import (
     calculate_scene_success_rate,
     extract_frames_from_video,

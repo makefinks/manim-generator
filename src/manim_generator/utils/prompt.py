@@ -12,7 +12,7 @@ def format_prompt(prompt_name: str, replacements: dict) -> str:
     Returns:
         Formatted prompt string with all replacements applied
     """
-    with open(f"prompts/{prompt_name}.txt", "r") as file:
+    with open(f"prompts/{prompt_name}.txt") as file:
         prompt_template = file.read()
 
     for placeholder, value in replacements.items():
