@@ -19,15 +19,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.12.5", "pytest>=8.0.0", "mypy>=1.0.0"]
+dev = ["ruff>=0.12.5", "pytest>=8.0.0", "pytest-cov>=4.0.0", "pre-commit>=3.0.0"]
 test = ["pytest>=8.0.0"]
 
 [project.scripts]
 manim-generate = "manim_generator.main:main"
 manim-render = "manim_generator.cli:manual_render"
 
-[tool.uv]
-dev-dependencies = ["ruff>=0.12.5", "pytest>=8.0.0", "mypy>=1.0.0"]
+[dependency-groups]
+dev = ["ruff>=0.12.5", "pytest>=8.0.0", "pytest-cov>=4.0.0", "pre-commit>=3.0.0"]
 
 [tool.ruff]
 line-length = 100
@@ -45,9 +45,4 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
 
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
-ignore_missing_imports = true
+

@@ -28,11 +28,7 @@ def extract_scene_class_names(code: str) -> list[str] | Exception:
             if isinstance(node, ast.ClassDef):
                 for base in node.bases:
                     # get scenes that inherit from 'Scene'
-                    base_id = (
-                        base.id
-                        if isinstance(base, ast.Name)
-                        else getattr(base, "attr", "")
-                    )
+                    base_id = base.id if isinstance(base, ast.Name) else getattr(base, "attr", "")
                     if base_id.endswith("Scene"):
                         scene_names.append(node.name)
                         break

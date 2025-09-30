@@ -42,14 +42,10 @@ class Config:
 
     def _create_parser(self) -> argparse.ArgumentParser:
         """Create and configure the argument parser."""
-        parser = argparse.ArgumentParser(
-            description="Generate Manim animations using AI"
-        )
+        parser = argparse.ArgumentParser(description="Generate Manim animations using AI")
 
         # Video data input
-        parser.add_argument(
-            "--video-data", type=str, help="Description of the video to generate"
-        )
+        parser.add_argument("--video-data", type=str, help="Description of the video to generate")
         parser.add_argument(
             "--video-data-file",
             type=str,
@@ -82,9 +78,7 @@ class Config:
             "--output-dir",
             type=str,
             default=None,
-            help=(
-                "Directory to save outputs (overrides the auto-generated folder name)"
-            ),
+            help=("Directory to save outputs (overrides the auto-generated folder name)"),
         )
         parser.add_argument(
             "--manim-logs",
@@ -184,9 +178,7 @@ class Config:
                 )
                 exit(1)
             except Exception as e:
-                self.console.print(
-                    f"[bold red]Error reading video data file: {e}[/bold red]"
-                )
+                self.console.print(f"[bold red]Error reading video data file: {e}[/bold red]")
                 exit(1)
 
         output_dir = args.output_dir
@@ -215,18 +207,12 @@ class Config:
                 )
 
         if not output_dir:
-            output_dir = (
-                f"output/{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            )
+            output_dir = f"output/{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             if not args.headless:
                 print("File descriptor: " + short_file_desc)
         # Check if both models support vision/images
-        main_vision_support = (
-            supports_vision(model=args.manim_model) or args.force_vision
-        )
-        review_vision_support = (
-            supports_vision(model=args.review_model) or args.force_vision
-        )
+        main_vision_support = supports_vision(model=args.manim_model) or args.force_vision
+        review_vision_support = supports_vision(model=args.review_model) or args.force_vision
         vision_enabled = main_vision_support and review_vision_support
 
         # Display vision support as a table (unless headless)

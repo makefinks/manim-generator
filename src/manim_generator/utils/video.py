@@ -9,9 +9,7 @@ from manim_generator.utils.rendering import extract_scene_class_names
 logger = logging.getLogger(__name__)
 
 
-def render_and_concat(
-    script_file: str, output_media_dir: str, final_output: str
-) -> None:
+def render_and_concat(script_file: str, output_media_dir: str, final_output: str) -> None:
     """
     Runs a Manim script as a subprocess, then concatenates the rendered scene videos
     (in the order they appear in the script) into one final video using ffmpeg.
@@ -68,9 +66,7 @@ def render_and_concat(
 
     # The quality folder is "1080p60" since the -pqh argument
     quality_folder = "1080p60"
-    videos_dir = os.path.join(
-        output_media_dir, "videos", script_basename, quality_folder
-    )
+    videos_dir = os.path.join(output_media_dir, "videos", script_basename, quality_folder)
     if not os.path.exists(videos_dir):
         logger.error("Rendered videos folder not found: %s", videos_dir)
         return
@@ -143,9 +139,7 @@ def render_and_concat(
         if os.uname().sysname == "Linux":
             abs_path = os.path.abspath(final_output_path)
             try:
-                subprocess.run(
-                    ["xdg-open", abs_path], check=True, env=os.environ.copy()
-                )
+                subprocess.run(["xdg-open", abs_path], check=True, env=os.environ.copy())
                 logger.info("Playing video with xdg-open")
             except (subprocess.CalledProcessError, FileNotFoundError) as e:
                 logger.error("Failed to play video with xdg-open: %s", str(e))
@@ -153,18 +147,14 @@ def render_and_concat(
                     # fallbacks
                     for player in ["vlc", "mpv", "ffplay", "mplayer"]:
                         try:
-                            subprocess.run(
-                                ["which", player], check=True, stdout=subprocess.PIPE
-                            )
+                            subprocess.run(["which", player], check=True, stdout=subprocess.PIPE)
                             subprocess.run([player, abs_path], check=False)
                             logger.info(f"Playing video with {player}")
                             break
                         except subprocess.CalledProcessError:
                             continue
                 except Exception as e:
-                    logger.error(
-                        "Failed to play video with fallback players: %s", str(e)
-                    )
+                    logger.error("Failed to play video with fallback players: %s", str(e))
         else:  # Mac
             play_command = ["open", final_output_path]
             try:
@@ -173,6 +163,4 @@ def render_and_concat(
             except subprocess.CalledProcessError as e:
                 logger.error("Failed to play video: %s", str(e))
     else:
-        logger.error(
-            "Could not determine appropriate video player command for this system"
-        )
+        logger.error("Could not determine appropriate video player command for this system")

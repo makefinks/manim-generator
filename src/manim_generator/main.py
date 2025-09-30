@@ -58,12 +58,8 @@ def main():
         )
         console.print(f"[cyan]Review cycles completed:[/cyan] {workflow.cycles_completed}")
         console.print(f"[cyan]Total executions:[/cyan] {workflow.execution_count}")
-        console.print(
-            f"[cyan]Successful executions:[/cyan] {workflow.successful_executions}"
-        )
-        console.print(
-            f"[cyan]Initial success:[/cyan] {'✓' if workflow.initial_success else '✗'}"
-        )
+        console.print(f"[cyan]Successful executions:[/cyan] {workflow.successful_executions}")
+        console.print(f"[cyan]Initial success:[/cyan] {'✓' if workflow.initial_success else '✗'}")
         console.print(
             f"[cyan]Final working code:[/cyan] {'✓' if working_code is not None else '✗'}"
         )
@@ -75,7 +71,9 @@ def main():
     else:
         token_usage_tracking = workflow.usage_tracker.get_tracking_data()
         save_usage_report(config["output_dir"], token_usage_tracking, console)
-        console.print(f"\n[bold green]✓ Workflow complete in {format_duration(workflow_duration)}[/bold green]")
+        console.print(
+            f"\n[bold green]✓ Workflow complete in {format_duration(workflow_duration)}[/bold green]"
+        )
         console.print(f"[green]Output saved to: {config['output_dir']}/video.py[/green]")
 
     save_workflow_metadata(

@@ -53,4 +53,3 @@ class ArtifactManager:
         frames_dir = os.path.join(step_dir, "frames")
         os.makedirs(frames_dir, exist_ok=True)
         return frames_dir
-

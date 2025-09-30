@@ -94,9 +94,7 @@ class TestExtractFramesFromVideo(unittest.TestCase):
         mock_cap.read.return_value = (True, np.zeros((100, 100, 3), dtype=np.uint8))
         mock_capture.return_value = mock_cap
 
-        frames = extract_frames_from_video(
-            "test_video.mp4", mode="fixed_count", frame_count=3
-        )
+        frames = extract_frames_from_video("test_video.mp4", mode="fixed_count", frame_count=3)
 
         self.assertIsNotNone(frames)
         if frames is not None:
@@ -117,9 +115,7 @@ class TestExtractFramesFromVideo(unittest.TestCase):
         mock_cap.read.side_effect = [(True, black_frame), (True, white_frame)]
         mock_capture.return_value = mock_cap
 
-        frames = extract_frames_from_video(
-            "test_video.mp4", mode="highest_density", max_frames=2
-        )
+        frames = extract_frames_from_video("test_video.mp4", mode="highest_density", max_frames=2)
 
         self.assertIsNotNone(frames)
         if frames is not None:

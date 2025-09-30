@@ -78,9 +78,7 @@ def run_manim_multiscene(
                 filename,
                 scene,
             ]
-            process = subprocess.run(
-                command, text=True, capture_output=True, env=os.environ.copy()
-            )
+            process = subprocess.run(command, text=True, capture_output=True, env=os.environ.copy())
         else:
             with console.status(f"[bold blue]Rendering scene {scene}..."):
                 command = [
@@ -122,9 +120,7 @@ def run_manim_multiscene(
     script_basename = os.path.splitext(os.path.basename(filename))[0]
     quality_folder = "480p15"  # matches -ql argument
 
-    video_base_path = os.path.join(
-        output_media_dir, "videos", script_basename, quality_folder
-    )
+    video_base_path = os.path.join(output_media_dir, "videos", script_basename, quality_folder)
 
     # List of tuples: (scene_name, data_url)
     frames: list[tuple[str, str]] = []
@@ -142,14 +138,10 @@ def run_manim_multiscene(
                         for idx, frame in enumerate(extracted_frames):
                             success, buffer = cv2.imencode(".png", frame)
                             if success:
-                                image_base64 = base64.b64encode(
-                                    buffer.tobytes()
-                                ).decode("utf-8")
+                                image_base64 = base64.b64encode(buffer.tobytes()).decode("utf-8")
                                 data_url = f"data:image/png;base64,{image_base64}"
                                 frame_name = (
-                                    f"{scene}_{idx + 1}"
-                                    if len(extracted_frames) > 1
-                                    else scene
+                                    f"{scene}_{idx + 1}" if len(extracted_frames) > 1 else scene
                                 )
                                 frames.append((frame_name, data_url))
                             else:

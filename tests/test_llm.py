@@ -127,9 +127,9 @@ class TestGetCompletionWithRetry(unittest.TestCase):
         """Test successful completion request."""
         # Create nested dict structure matching litellm response
         mock_response = MagicMock()
-        mock_response.__getitem__ = MagicMock(side_effect=lambda key: {
-            "choices": [{"message": {"content": "Test response"}}]
-        }[key])
+        mock_response.__getitem__ = MagicMock(
+            side_effect=lambda key: {"choices": [{"message": {"content": "Test response"}}]}[key]
+        )
         mock_response.usage.prompt_tokens = 100
         mock_response.usage.completion_tokens = 50
         mock_response.usage.total_tokens = 150
@@ -158,9 +158,9 @@ class TestGetCompletionWithRetry(unittest.TestCase):
 
         # Create nested dict structure matching litellm response
         mock_response = MagicMock()
-        mock_response.__getitem__ = MagicMock(side_effect=lambda key: {
-            "choices": [{"message": mock_message}]
-        }[key])
+        mock_response.__getitem__ = MagicMock(
+            side_effect=lambda key: {"choices": [{"message": mock_message}]}[key]
+        )
         mock_response.usage.prompt_tokens = 100
         mock_response.usage.completion_tokens = 50
         mock_response.usage.total_tokens = 150

@@ -31,9 +31,7 @@ class TestFormatPrompt(unittest.TestCase):
                 f.write(test_prompt)
 
             try:
-                result = format_prompt(
-                    "test_prompt", {"name": "Alice", "age": "30"}
-                )
+                result = format_prompt("test_prompt", {"name": "Alice", "age": "30"})
                 self.assertEqual(result, "Hello Alice, your age is 30")
             finally:
                 os.remove(test_file)

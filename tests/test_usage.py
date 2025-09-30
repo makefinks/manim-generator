@@ -26,7 +26,7 @@ class TestTokenUsageTracker(unittest.TestCase):
             "prompt_tokens": 100,
             "completion_tokens": 200,
             "total_tokens": 300,
-            "cost": 0.0015
+            "cost": 0.0015,
         }
 
         self.tracker.add_step(step_name, model, usage_info)
@@ -53,7 +53,7 @@ class TestTokenUsageTracker(unittest.TestCase):
             "prompt_tokens": 150,
             "completion_tokens": 250,
             "total_tokens": 400,
-            "cost": 0.0020
+            "cost": 0.0020,
         }
 
         self.tracker.add_step(step_name, model, usage_info)

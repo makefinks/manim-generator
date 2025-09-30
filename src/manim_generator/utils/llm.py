@@ -17,9 +17,7 @@ from rich.prompt import Prompt
 litellm.drop_params = True
 
 
-def check_and_register_models(
-    models: list[str], console: Console, headless: bool = False
-) -> None:
+def check_and_register_models(models: list[str], console: Console, headless: bool = False) -> None:
     """
     Checks if models are registered in the LiteLLM cost map.
     If not, prompts the user for costs and registers them.
@@ -281,9 +279,7 @@ def get_streaming_completion_with_retry(
                     full_response += token
                     yield (token, full_response, empty_usage)
                 except Exception as e:
-                    console.print(
-                        f"[bold red]Error processing stream chunk: {e}[/bold red]"
-                    )
+                    console.print(f"[bold red]Error processing stream chunk: {e}[/bold red]")
                     raise e
 
             # Return final empty usage for streaming

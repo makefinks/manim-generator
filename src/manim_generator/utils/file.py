@@ -1,4 +1,5 @@
 """Utility functions for File manipulation"""
+
 import logging
 import os
 
@@ -15,6 +16,7 @@ def load_video_data(file_path: str, console: Console) -> str:
     except FileNotFoundError:
         console.print(f"[bold red]Error: {file_path} file not found[/bold red]")
         raise
+
 
 def save_code_to_file(code: str, filename: str = "video.py") -> str:
     """

@@ -27,9 +27,7 @@ class TestArtifactManager(unittest.TestCase):
     def test_initialization(self):
         """Test that artifact manager initializes correctly."""
         self.assertEqual(self.artifact_manager.output_dir, self.temp_dir)
-        self.assertTrue(
-            os.path.exists(os.path.join(self.temp_dir, "steps"))
-        )
+        self.assertTrue(os.path.exists(os.path.join(self.temp_dir, "steps")))
 
     def test_get_step_frames_path(self):
         """Test getting frames directory for a step."""
@@ -59,9 +57,7 @@ class TestArtifactManager(unittest.TestCase):
 
         self.artifact_manager.save_step_artifacts(step_name, prompt=prompt)
 
-        prompt_file = os.path.join(
-            self.temp_dir, "steps", step_name, "prompt.txt"
-        )
+        prompt_file = os.path.join(self.temp_dir, "steps", step_name, "prompt.txt")
         self.assertTrue(os.path.exists(prompt_file))
 
         with open(prompt_file) as f:
@@ -75,9 +71,7 @@ class TestArtifactManager(unittest.TestCase):
 
         self.artifact_manager.save_step_artifacts(step_name, logs=logs)
 
-        logs_file = os.path.join(
-            self.temp_dir, "steps", step_name, "logs.txt"
-        )
+        logs_file = os.path.join(self.temp_dir, "steps", step_name, "logs.txt")
         self.assertTrue(os.path.exists(logs_file))
 
         with open(logs_file) as f:
@@ -91,9 +85,7 @@ class TestArtifactManager(unittest.TestCase):
 
         self.artifact_manager.save_step_artifacts(step_name, review_text=review)
 
-        review_file = os.path.join(
-            self.temp_dir, "steps", step_name, "review.md"
-        )
+        review_file = os.path.join(self.temp_dir, "steps", step_name, "review.md")
         self.assertTrue(os.path.exists(review_file))
 
         with open(review_file) as f:
@@ -107,9 +99,7 @@ class TestArtifactManager(unittest.TestCase):
 
         self.artifact_manager.save_step_artifacts(step_name, reasoning=reasoning)
 
-        reasoning_file = os.path.join(
-            self.temp_dir, "steps", step_name, "reasoning.txt"
-        )
+        reasoning_file = os.path.join(self.temp_dir, "steps", step_name, "reasoning.txt")
         self.assertTrue(os.path.exists(reasoning_file))
 
         with open(reasoning_file) as f:
