@@ -111,7 +111,7 @@ class ManimWorkflow:
 
         return code, main_messages
 
-    def execute_code(self, code: str, step_name: str = "Execution") -> tuple[bool, list, str]:
+    def execute_code(self, code: str, step_name: str = "Execution") -> tuple[bool, list, str, list]:
         """Execute Manim code and return results.
 
         Args:
@@ -119,14 +119,14 @@ class ManimWorkflow:
             step_name: Name of the execution step for logging
 
         Returns:
-            tuple: (success, frames, logs)
+            tuple: (success, frames, logs, successful_scenes)
         """
         if self.headless and self.headless_manager:
             self.headless_manager.update(f"{step_name}")
         else:
             self.console.rule(f"[bold green]Running Manim Script - {step_name}", style="green")
 
-        success, frames, logs = run_manim_multiscene(
+        success, frames, logs, successful_scenes = run_manim_multiscene(
             code,
             self.console,
             self.config["output_dir"],
@@ -138,7 +138,7 @@ class ManimWorkflow:
         )
 
         if not self.headless:
-            self._display_execution_status(success, frames, code, logs)
+            self._display_execution_status(success, frames, code, logs, successful_scenes)
 
         self.execution_count += 1
         if success:
@@ -151,14 +151,16 @@ class ManimWorkflow:
             step_name.lower().replace(" ", "_"), code=code, logs=logs
         )
 
-        return success, frames, logs
+        return success, frames, logs, successful_scenes
 
-    def _display_execution_status(self, success: bool, frames: list, code: str, logs: str) -> None:
+    def _display_execution_status(
+        self, success: bool, frames: list, code: str, logs: str, successful_scenes: list[str]
+    ) -> None:
         """Display execution status information."""
         status_color = "green" if success else "red"
 
         scene_names = extract_scene_class_names(code)
-        scenes_rendered = f"{len(frames) // self.config['frame_count']} of {len(scene_names) if isinstance(scene_names, list) else '? (Syntax error)'}"
+        scenes_rendered = f"{len(successful_scenes)} of {len(scene_names) if isinstance(scene_names, list) else '? (Syntax error)'}"
 
         self.console.print(
             f"[bold {status_color}]Execution Status: {'Success' if success else 'Failed'}[/bold {status_color}]"
@@ -186,6 +188,7 @@ class ManimWorkflow:
         combined_logs: str,
         last_frames: list,
         video_data: str,
+        successful_scenes: list[str],
     ) -> tuple[str, str | None, str]:
         """Perform review cycles and update the Manim code.
 
@@ -194,6 +197,7 @@ class ManimWorkflow:
             combined_logs: Logs from executions
             last_frames: Rendered frames from last execution
             video_data: Original video description
+            successful_scenes: List of successfully rendered scene names from last execution
 
         Returns:
             tuple: (final_code, last_working_code, final_logs)
@@ -208,7 +212,12 @@ class ManimWorkflow:
                 self.console.rule(f"[bold blue]Review Cycle {cycle + 1}", style="blue")
 
             review, review_reasoning = self._generate_review(
-                current_code, combined_logs, last_frames, previous_reviews, cycle + 1
+                current_code,
+                combined_logs,
+                last_frames,
+                previous_reviews,
+                cycle + 1,
+                successful_scenes,
             )
             previous_reviews.append(review)
 
@@ -234,7 +243,7 @@ class ManimWorkflow:
                 current_code, review, video_data, cycle + 1, last_frames
             )
 
-            success, last_frames, combined_logs = self.execute_code(
+            success, last_frames, combined_logs, successful_scenes = self.execute_code(
                 current_code, f"Revision {cycle + 1}"
             )
             if success:
@@ -245,7 +254,13 @@ class ManimWorkflow:
         return current_code, working_code, combined_logs
 
     def _generate_review(
-        self, code: str, logs: str, frames: list, previous_reviews: list, cycle_num: int
+        self,
+        code: str,
+        logs: str,
+        frames: list,
+        previous_reviews: list,
+        cycle_num: int,
+        successful_scenes: list[str],
     ) -> tuple[str, str | None]:
         """Generate a review of the current code."""
         if self.headless and self.headless_manager:
@@ -263,10 +278,8 @@ class ManimWorkflow:
         # success rate determines review prompt
         scene_names = extract_scene_class_names(code)
         success_rate, scenes_rendered, total_scenes = calculate_scene_success_rate(
-            frames,
+            successful_scenes,
             scene_names,
-            self.config["frame_count"],
-            self.config["frame_extraction_mode"],
         )
 
         # check if we can use visual enhance review prompt

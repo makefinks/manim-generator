@@ -30,7 +30,7 @@ def run_manim_multiscene(
     frame_extraction_mode: str = "fixed_count",
     frame_count: int = 3,
     headless: bool = False,
-) -> tuple[bool, list[str], str]:
+) -> tuple[bool, list[str], str, list[str]]:
     """
     Saves the code to a file, extracts scene names, and runs each scene individually.
     After rendering, extracts representative frames from each scene's video using
@@ -49,7 +49,8 @@ def run_manim_multiscene(
     Returns a tuple containing:
       - a boolean success flag (True only if all scenes rendered successfully and files were found),
       - a list of Base64 encoded image strings as data URLs,
-      - and a combined log string.
+      - a combined log string,
+      - a list of successfully rendered scene names.
     """
     # save code to temp file
     filename = save_code_to_file(code, filename=f"{output_media_dir}/video.py")
@@ -62,10 +63,11 @@ def run_manim_multiscene(
         error_msg = f"Code parsing failed: {str(scene_names)}\n\nGenerated code has syntax errors and cannot be executed."
         if not headless:
             console.print(f"[red]Code parsing error: {str(scene_names)}[/red]")
-        return False, [], error_msg
+        return False, [], error_msg, []
 
     combined_logs = ""
-    overall_success = True
+    rendering_success = True
+    successful_scenes = []
 
     # Run each scene
     for scene in scene_names:
@@ -109,11 +111,13 @@ def run_manim_multiscene(
         combined_logs += log_entry
 
         if process.returncode != 0:
-            overall_success = False
+            rendering_success = False
             if not headless:
                 console.print(
                     f"[red]Rendering scene {scene} failed with exit code {process.returncode}[/red]"
                 )
+        else:
+            successful_scenes.append(scene)
 
     # Determine videos directory for the rendered files
     # According to Manim docs, structure: <media_dir>/videos/<script_basename>/<quality_folder>/<Scene>.mp4
@@ -145,25 +149,21 @@ def run_manim_multiscene(
                                 )
                                 frames.append((frame_name, data_url))
                             else:
-                                overall_success = False
                                 if not headless:
                                     console.print(
                                         f"[yellow]Failed to encode frame {idx + 1} for {scene_video_path}[/yellow]"
                                     )
                     else:
-                        overall_success = False
                         if not headless:
                             console.print(
                                 f"[yellow]No suitable frames extracted from {scene_video_path}[/yellow]"
                             )
                 except Exception as e:
-                    overall_success = False
                     if not headless:
                         console.print(
                             f"[red]Error extracting frame from {scene_video_path}: {e}[/red]"
                         )
             else:
-                overall_success = False
                 if not headless:
                     console.print(
                         f"[red]Video file not found for scene {scene} at {scene_video_path}[/red]"
@@ -209,27 +209,22 @@ def run_manim_multiscene(
                                 f"[yellow]Warning: Could not delete {scene_video_path}: {e}[/yellow]"
                             )
     else:
-        overall_success = False
         if not headless:
             console.print(f"[red]Video directory not found at {video_base_path}[/red]")
 
-    return overall_success, [data_url for _, data_url in frames], combined_logs
+    return rendering_success, [data_url for _, data_url in frames], combined_logs, successful_scenes
 
 
 def calculate_scene_success_rate(
-    frames: list,
+    successful_scenes: list[str],
     scene_names: list[str] | Exception,
-    frames_per_scene: int,
-    extraction_mode: str,
 ) -> tuple[float, float, int]:
     """
     Calculate the success rate of scene rendering.
 
     Args:
-        frames: List of rendered frame data
-        scene_names: List of scene class names or Exception if parsing failed
-        frames_per_scene: Expected frames per scene when in fixed-count mode
-        extraction_mode: Selected frame extraction strategy
+        successful_scenes: List of scene names that rendered successfully
+        scene_names: List of all scene class names or Exception if parsing failed
 
     Returns:
         tuple: (success_rate, scenes_rendered, total_scenes)
@@ -242,14 +237,7 @@ def calculate_scene_success_rate(
     if total_scenes == 0:
         return 0.0, 0, 0
 
-    if extraction_mode == "fixed_count" and frames_per_scene > 0:
-        scenes_rendered = len(frames) / frames_per_scene
-    else:
-        # Highest-density (and other single-frame modes) return one frame per scene
-        scenes_rendered = len(frames)
-
-    scenes_rendered = min(scenes_rendered, total_scenes)
-
+    scenes_rendered = len(successful_scenes)
     success_rate = (scenes_rendered / total_scenes) * 100
     return success_rate, scenes_rendered, total_scenes
 

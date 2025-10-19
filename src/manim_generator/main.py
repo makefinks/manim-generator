@@ -31,7 +31,9 @@ def main():
     workflow = ManimWorkflow(config, console)
 
     current_code, main_messages = workflow.generate_initial_code(video_data)
-    success, last_frames, combined_logs = workflow.execute_code(current_code, "Initial")
+    success, last_frames, combined_logs, successful_scenes = workflow.execute_code(
+        current_code, "Initial"
+    )
     workflow.initial_success = success
     working_code = current_code if success else None
 
@@ -44,7 +46,7 @@ def main():
         )
 
     current_code, new_working_code, combined_logs = workflow.review_and_update_code(
-        current_code, combined_logs, last_frames, video_data
+        current_code, combined_logs, last_frames, video_data, successful_scenes
     )
     working_code = new_working_code if new_working_code else working_code
 

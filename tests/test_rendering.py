@@ -14,42 +14,34 @@ from manim_generator.utils.rendering import (
 class TestCalculateSceneSuccessRate(unittest.TestCase):
     """Test cases for calculate_scene_success_rate function."""
 
-    def test_all_scenes_successful_fixed_count(self):
-        """Test success rate when all scenes rendered in fixed_count mode."""
-        frames = ["frame1", "frame2", "frame3", "frame4", "frame5", "frame6"]
+    def test_all_scenes_successful(self):
+        """Test success rate when all scenes rendered successfully."""
+        successful_scenes = ["Scene1", "Scene2"]
         scene_names = ["Scene1", "Scene2"]
-        frames_per_scene = 3
 
-        success_rate, rendered, total = calculate_scene_success_rate(
-            frames, scene_names, frames_per_scene, "fixed_count"
-        )
+        success_rate, rendered, total = calculate_scene_success_rate(successful_scenes, scene_names)
 
         self.assertEqual(success_rate, 100.0)
         self.assertEqual(rendered, 2)
         self.assertEqual(total, 2)
 
-    def test_partial_scenes_successful_fixed_count(self):
-        """Test success rate when only some scenes rendered in fixed_count mode."""
-        frames = ["frame1", "frame2", "frame3"]
+    def test_partial_scenes_successful(self):
+        """Test success rate when only some scenes rendered successfully."""
+        successful_scenes = ["Scene1"]
         scene_names = ["Scene1", "Scene2"]
-        frames_per_scene = 3
 
-        success_rate, rendered, total = calculate_scene_success_rate(
-            frames, scene_names, frames_per_scene, "fixed_count"
-        )
+        success_rate, rendered, total = calculate_scene_success_rate(successful_scenes, scene_names)
 
         self.assertEqual(success_rate, 50.0)
         self.assertEqual(rendered, 1)
         self.assertEqual(total, 2)
 
-    def test_highest_density_mode(self):
-        """Test success rate in highest_density mode."""
-        frames = ["frame1", "frame2"]
+    def test_two_of_three_scenes_successful(self):
+        """Test success rate when 2 out of 3 scenes rendered successfully."""
+        successful_scenes = ["Scene1", "Scene2"]
         scene_names = ["Scene1", "Scene2", "Scene3"]
 
-        success_rate, rendered, total = calculate_scene_success_rate(
-            frames, scene_names, 1, "highest_density"
-        )
+        success_rate, rendered, total = calculate_scene_success_rate(successful_scenes, scene_names)
 
         self.assertAlmostEqual(success_rate, 66.666, places=1)
         self.assertEqual(rendered, 2)
@@ -57,12 +49,10 @@ class TestCalculateSceneSuccessRate(unittest.TestCase):
 
     def test_no_scenes(self):
         """Test success rate with no scenes."""
-        frames = []
+        successful_scenes = []
         scene_names = []
 
-        success_rate, rendered, total = calculate_scene_success_rate(
-            frames, scene_names, 1, "fixed_count"
-        )
+        success_rate, rendered, total = calculate_scene_success_rate(successful_scenes, scene_names)
 
         self.assertEqual(success_rate, 0.0)
         self.assertEqual(rendered, 0)
@@ -70,12 +60,10 @@ class TestCalculateSceneSuccessRate(unittest.TestCase):
 
     def test_parsing_exception(self):
         """Test success rate when scene parsing failed."""
-        frames = []
+        successful_scenes = []
         scene_names = Exception("Syntax error")
 
-        success_rate, rendered, total = calculate_scene_success_rate(
-            frames, scene_names, 1, "fixed_count"
-        )
+        success_rate, rendered, total = calculate_scene_success_rate(successful_scenes, scene_names)
 
         self.assertEqual(success_rate, 0.0)
         self.assertEqual(rendered, 0)
