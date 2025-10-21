@@ -10,7 +10,7 @@ from rich.table import Table
 DEFAULT_CONFIG = {
     "manim_model": "openrouter/x-ai/grok-code-fast-1",
     "review_model": "openrouter/x-ai/grok-code-fast-1",
-    "review_cycles": 5,
+    "review_cycles": 3,
     "manim_logs": False,
     "streaming": False,
     "temperature": 0.4,

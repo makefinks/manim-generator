@@ -262,10 +262,11 @@ def get_streaming_completion_with_retry(
                 reasoning=reasoning,
                 provider=provider,
             )
+            completion_args["stream_options"] = {"include_usage": True}
 
             response = completion(**completion_args)  # type: ignore
             full_response = ""
-            empty_usage = {
+            final_usage = {
                 "model": model,
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
@@ -277,14 +278,28 @@ def get_streaming_completion_with_retry(
                 try:
                     token = chunk.choices[0].delta.content or ""  # type: ignore
                     full_response += token
-                    yield (token, full_response, empty_usage)
+
+                    if hasattr(chunk, "usage") and chunk.usage:  # type: ignore
+                        try:
+                            cost = completion_cost(chunk)
+                        except Exception:
+                            cost = 0.0
+
+                        final_usage = {
+                            "model": model,
+                            "prompt_tokens": chunk.usage.prompt_tokens or 0,  # type: ignore
+                            "completion_tokens": chunk.usage.completion_tokens or 0,  # type: ignore
+                            "total_tokens": chunk.usage.total_tokens or 0,  # type: ignore
+                            "cost": cost,
+                        }
+
+                    yield (token, full_response, final_usage)
                 except Exception as e:
                     console.print(f"[bold red]Error processing stream chunk: {e}[/bold red]")
                     raise e
 
-            # Return final empty usage for streaming
-            yield ("", full_response, empty_usage)
-            return  # End of streaming
+            yield ("", full_response, final_usage)
+            return
         except RateLimitError as e:
             match = re.search(r"try again in (\d+\.?\d*)s", str(e))
             if match:

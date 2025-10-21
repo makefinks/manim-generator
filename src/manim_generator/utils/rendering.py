@@ -130,7 +130,8 @@ def run_manim_multiscene(
     frames: list[tuple[str, str]] = []
 
     if os.path.exists(video_base_path):
-        for scene in scene_names:
+        # Only extract frames from scenes that rendered successfully
+        for scene in successful_scenes:
             scene_video_path = os.path.join(video_base_path, f"{scene}.mp4")
             if os.path.exists(scene_video_path):
                 try:
@@ -186,8 +187,9 @@ def run_manim_multiscene(
 
         # Clean up video files after extracting frames to prevent old videos
         # from previous iterations affecting scene counting
+        # Only clean up videos from successful scenes (failed scenes won't have videos)
         if headless:
-            for scene in scene_names:
+            for scene in successful_scenes:
                 scene_video_path = os.path.join(video_base_path, f"{scene}.mp4")
                 if os.path.exists(scene_video_path):
                     try:
@@ -199,7 +201,7 @@ def run_manim_multiscene(
                             )
         else:
             with console.status("[bold blue]Cleaning up video files..."):
-                for scene in scene_names:
+                for scene in successful_scenes:
                     scene_video_path = os.path.join(video_base_path, f"{scene}.mp4")
                     if os.path.exists(scene_video_path):
                         try:
