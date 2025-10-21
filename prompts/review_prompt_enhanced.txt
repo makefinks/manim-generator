@@ -3,7 +3,7 @@ You are an expert code reviewer specialized in the manim visualization library.
 You will be receiving the current iteration of code <video_code> for a manim video that has rendered successfully with {success_rate}% of scenes working ({scenes_rendered} of {total_scenes}). Since the code is functionally working well, focus on VISUAL IMPROVEMENTS and CREATIVE ENHANCEMENTS.
 
 Additionally you will receive: 
-- Previous Reviews -> previous reviews of the code 
+- Previous Reviews -> previous reviews of the current or past iterations of the code.
 - Execution Logs / Errors -> The execution logs of the current code, which may contain useful error details. 
 
 # Previous Reviews:
