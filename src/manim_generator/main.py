@@ -92,6 +92,16 @@ def main():
         console,
     )
 
+    workflow.artifact_manager.save_final_summary(
+        manim_model=config["manim_model"],
+        review_model=config["review_model"],
+        video_data=video_data,
+        total_cost=token_usage_tracking["total_cost"],
+        workflow_duration_seconds=workflow_duration,
+        llm_time_seconds=token_usage_tracking["total_llm_time"],
+        final_success=working_code is not None,
+    )
+
     workflow.finalize_output(working_code, current_code, combined_logs)
 
 

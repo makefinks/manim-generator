@@ -273,7 +273,7 @@ class ManimWorkflow:
         )
 
         if not self.headless:
-            self.console.print(f"[blue] Adding {len(frames_formatted)} images to the review")
+            self.console.print(f"[blue]Adding {len(frames_formatted)} images to the review")
 
         # success rate determines review prompt
         scene_names = extract_scene_class_names(code)
@@ -365,29 +365,14 @@ class ManimWorkflow:
         if self.headless and self.headless_manager:
             self.headless_manager.update(f"Code Revision {cycle_num}")
 
-        # we also pass the frames to the manim model as context
-        frames_formatted = (
-            convert_frames_to_message_format(frames)
-            if frames and self.config["vision_enabled"]
-            else []
-        )
-
         revision_prompt = f"Here is the current code:\n\n```python\n{current_code}\n```\n\nHere is some feedback on your code:\n\n<review>\n{review}\n</review>\n\nPlease implement the suggestions and respond with the whole script. Do not leave anything out."
-
-        # include frames
-        if frames_formatted:
-            if not self.headless:
-                self.console.print(f"[green]Adding {len(frames_formatted)} images to code revision")
-            user_content = [{"type": "text", "text": revision_prompt}] + frames_formatted
-        else:
-            user_content = revision_prompt
 
         revision_messages = [
             {
                 "role": "system",
                 "content": format_prompt("init_prompt", {"video_data": video_data}),
             },
-            {"role": "user", "content": user_content},
+            {"role": "user", "content": revision_prompt},
         ]
 
         if not self.headless:

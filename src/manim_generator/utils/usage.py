@@ -10,7 +10,12 @@ class TokenUsageTracker:
     """Tracks token usage and costs across workflow steps."""
 
     def __init__(self):
-        self.token_usage_tracking = {"steps": [], "total_tokens": 0, "total_cost": 0.0}
+        self.token_usage_tracking = {
+            "steps": [],
+            "total_tokens": 0,
+            "total_cost": 0.0,
+            "total_llm_time": 0.0,
+        }
 
     def add_step(self, step_name: str, model: str, usage_info: dict) -> None:
         """Add a step's usage information to tracking."""
@@ -22,6 +27,7 @@ class TokenUsageTracker:
         self.token_usage_tracking["steps"].append(step_info)
         self.token_usage_tracking["total_tokens"] += usage_info.get("total_tokens", 0)
         self.token_usage_tracking["total_cost"] += usage_info.get("cost", 0.0)
+        self.token_usage_tracking["total_llm_time"] += usage_info.get("llm_time", 0.0)
 
     def get_tracking_data(self) -> dict:
         """Get the complete tracking data."""

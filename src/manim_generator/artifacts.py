@@ -1,6 +1,8 @@
 """Utility functions for preserving workflow artifacts and debugging information."""
 
+import json
 import os
+from datetime import datetime
 
 from rich.console import Console
 
@@ -53,3 +55,42 @@ class ArtifactManager:
         frames_dir = os.path.join(step_dir, "frames")
         os.makedirs(frames_dir, exist_ok=True)
         return frames_dir
+
+    def save_final_summary(
+        self,
+        manim_model: str,
+        review_model: str,
+        video_data: str,
+        total_cost: float,
+        workflow_duration_seconds: float,
+        llm_time_seconds: float,
+        final_success: bool,
+    ) -> None:
+        """Save a comprehensive final summary JSON with all key metrics."""
+        summary = {
+            "models": {
+                "manim_model": manim_model,
+                "review_model": review_model,
+            },
+            "input": {
+                "video_data": video_data,
+            },
+            "cost": {
+                "total_usd": total_cost,
+            },
+            "timing": {
+                "total_workflow_time_seconds": workflow_duration_seconds,
+                "llm_request_time_seconds": llm_time_seconds,
+                "rendering_and_other_time_seconds": workflow_duration_seconds - llm_time_seconds,
+            },
+            "status": {
+                "final_success": final_success,
+            },
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        summary_file = os.path.join(self.output_dir, "final_summary.json")
+        with open(summary_file, "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+
+        self.console.print(f"[bold cyan]Final summary saved to: {summary_file}[/bold cyan]")

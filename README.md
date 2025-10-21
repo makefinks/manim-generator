@@ -121,7 +121,7 @@ The script supports the following command-line arguments:
 | `--manim-logs`            | Show Manim execution logs                                                                   | False                                          |
 | `--output-dir`            | Directory for generated artifacts (overrides auto-naming)                                   | Auto (e.g., `manim_animation_20250101_120000`) |
 | `--success-threshold`     | Percentage of scenes that must render successfully to trigger enhanced visual review mode   | 100                                            |
-| `--frame-extraction-mode` | Frame extraction mode: highest_density (single best frame) or fixed_count (multiple frames) | "fixed_count"                                  |
+| `--frame-extraction-mode` | Frame extraction mode: highest_density (single best frame) or fixed_count (multiple frames) | "highest_density"                              |
 | `--frame-count`           | Number of frames to extract when using fixed_count mode                                     | 3                                              |
 | `--headless`              | Suppress most output and show only a single progress bar                                    | False                                          |
 
@@ -147,6 +147,12 @@ Or with the command directly (if virtual environment is activated):
 
 ```bash
 manim-generate --video-data "Explain the concept of neural networks with visual examples" --manim-model "openrouter/anthropic/claude-sonnet-4" --review-model "openrouter/anthropic/claude-sonnet-4" --review-cycles 3
+```
+
+Some standard prompts for benchmarking different models are in the directoy `bench_prompts/`
+
+```
+manim-generate --video-data-file bench_prompts/llm_explainer.txt
 ```
 
 ### 3. Configure image support

@@ -140,13 +140,15 @@ def get_completion_with_retry(
     Returns:
         tuple[str, dict[str, object], str | None]: A tuple containing:
             - The generated completion text from the model
-            - Usage information including tokens and cost
+            - Usage information including tokens, cost, and llm_time
             - Reasoning content if available, otherwise None
 
     Raises:
         Exception: If max retries are exceeded and still getting rate limited.
     """
     retries = 0
+    llm_start_time = time.time()
+
     while retries < max_retries:
         try:
             completion_args = _build_litellm_args(
@@ -158,7 +160,11 @@ def get_completion_with_retry(
                 provider=provider,
             )
 
+            request_start = time.time()
             response = completion(**completion_args)  # type: ignore
+            request_end = time.time()
+            llm_time = request_end - request_start
+
             response_content = response["choices"][0]["message"]["content"]  # type: ignore
 
             try:
@@ -180,6 +186,7 @@ def get_completion_with_retry(
                 if hasattr(response, "usage") and response.usage  # type: ignore
                 else 0,
                 "cost": cost,
+                "llm_time": llm_time,
             }
 
             # extract reasoning content if available
@@ -209,12 +216,14 @@ def get_completion_with_retry(
             retries += 1
         except Exception as e:
             console.print(f"[bold red]Error: {e}[/bold red]")
+            llm_end_time = time.time()
             empty_usage = {
                 "model": model,
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
                 "total_tokens": 0,
                 "cost": 0.0,
+                "llm_time": llm_end_time - llm_start_time,
             }
             return "Review model failed to generate response.", empty_usage, None
 
@@ -246,12 +255,13 @@ def get_streaming_completion_with_retry(
         tuple[str, str, dict[str, object]]: A tuple containing:
             - The current token
             - The full accumulated response so far
-            - Usage information (empty for streaming)
+            - Usage information (includes llm_time when complete)
 
     Raises:
         Exception: If max retries are exceeded and still getting rate limited.
     """
     retries = 0
+
     while retries < max_retries:
         try:
             completion_args = _build_litellm_args(
@@ -264,6 +274,7 @@ def get_streaming_completion_with_retry(
             )
             completion_args["stream_options"] = {"include_usage": True}
 
+            stream_start = time.time()
             response = completion(**completion_args)  # type: ignore
             full_response = ""
             final_usage = {
@@ -272,6 +283,7 @@ def get_streaming_completion_with_retry(
                 "completion_tokens": 0,
                 "total_tokens": 0,
                 "cost": 0.0,
+                "llm_time": 0.0,
             }
 
             for chunk in response:
@@ -285,12 +297,14 @@ def get_streaming_completion_with_retry(
                         except Exception:
                             cost = 0.0
 
+                        stream_end = time.time()
                         final_usage = {
                             "model": model,
                             "prompt_tokens": chunk.usage.prompt_tokens or 0,  # type: ignore
                             "completion_tokens": chunk.usage.completion_tokens or 0,  # type: ignore
                             "total_tokens": chunk.usage.total_tokens or 0,  # type: ignore
                             "cost": cost,
+                            "llm_time": stream_end - stream_start,
                         }
 
                     yield (token, full_response, final_usage)

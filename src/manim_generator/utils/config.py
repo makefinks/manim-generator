@@ -10,13 +10,13 @@ from rich.table import Table
 DEFAULT_CONFIG = {
     "manim_model": "openrouter/x-ai/grok-code-fast-1",
     "review_model": "openrouter/x-ai/grok-code-fast-1",
-    "review_cycles": 3,
+    "review_cycles": 4,
     "manim_logs": False,
     "streaming": False,
     "temperature": 0.4,
     "success_threshold": 100,
     "output_dir": None,
-    "frame_extraction_mode": "fixed_count",
+    "frame_extraction_mode": "highest_density",
     "frame_count": 3,
 }
 
@@ -207,7 +207,10 @@ class Config:
                 )
 
         if not output_dir:
-            output_dir = f"output/{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            model_name = args.manim_model.replace("openrouter/", "").replace("/", "_")
+            output_dir = (
+                f"output/{model_name}_{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            )
             if not args.headless:
                 print("File descriptor: " + short_file_desc)
         # Check if both models support vision/images
