@@ -8,8 +8,7 @@ from manim_generator.utils.file import load_video_data
 from manim_generator.utils.usage import (
     display_usage_summary,
     format_duration,
-    save_usage_report,
-    save_workflow_metadata,
+    get_usage_totals,
 )
 from manim_generator.workflow import ManimWorkflow
 
@@ -69,28 +68,14 @@ def main():
         console.rule("[bold cyan]Token Usage & Cost Summary", style="cyan")
         token_usage_tracking = workflow.usage_tracker.get_tracking_data()
         display_usage_summary(console, token_usage_tracking)
-        save_usage_report(config["output_dir"], token_usage_tracking, console)
     else:
-        token_usage_tracking = workflow.usage_tracker.get_tracking_data()
-        save_usage_report(config["output_dir"], token_usage_tracking, console)
         console.print(
             f"\n[bold green]✓ Workflow complete in {format_duration(workflow_duration)}[/bold green]"
         )
         console.print(f"[green]Output saved to: {config['output_dir']}/video.py[/green]")
 
-    save_workflow_metadata(
-        config["output_dir"],
-        {
-            "duration_seconds": workflow_duration,
-            "review_cycles": workflow.cycles_completed,
-            "total_executions": workflow.execution_count,
-            "successful_executions": workflow.successful_executions,
-            "initial_success": workflow.initial_success,
-            "final_success": working_code is not None,
-            "video_data": video_data,
-        },
-        console,
-    )
+    token_usage_tracking = workflow.usage_tracker.get_tracking_data()
+    total_prompt_tokens, total_completion_tokens = get_usage_totals(token_usage_tracking)
 
     workflow.artifact_manager.save_final_summary(
         manim_model=config["manim_model"],
@@ -100,6 +85,15 @@ def main():
         workflow_duration_seconds=workflow_duration,
         llm_time_seconds=token_usage_tracking["total_llm_time"],
         final_success=working_code is not None,
+        review_cycles=workflow.cycles_completed,
+        total_executions=workflow.execution_count,
+        successful_executions=workflow.successful_executions,
+        initial_success=workflow.initial_success,
+        duration_human=format_duration(workflow_duration),
+        token_usage_steps=token_usage_tracking["steps"],
+        total_prompt_tokens=total_prompt_tokens,
+        total_completion_tokens=total_completion_tokens,
+        total_tokens=token_usage_tracking["total_tokens"],
     )
 
     workflow.finalize_output(working_code, current_code, combined_logs)

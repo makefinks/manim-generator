@@ -65,9 +65,19 @@ class ArtifactManager:
         workflow_duration_seconds: float,
         llm_time_seconds: float,
         final_success: bool,
+        review_cycles: int,
+        total_executions: int,
+        successful_executions: int,
+        initial_success: bool,
+        duration_human: str,
+        token_usage_steps: list,
+        total_prompt_tokens: int,
+        total_completion_tokens: int,
+        total_tokens: int,
     ) -> None:
         """Save a comprehensive final summary JSON with all key metrics."""
         summary = {
+            "timestamp": datetime.now().isoformat(),
             "models": {
                 "manim_model": manim_model,
                 "review_model": review_model,
@@ -75,22 +85,30 @@ class ArtifactManager:
             "input": {
                 "video_data": video_data,
             },
-            "cost": {
-                "total_usd": total_cost,
+            "execution_stats": {
+                "review_cycles_completed": review_cycles,
+                "total_executions": total_executions,
+                "successful_executions": successful_executions,
+                "initial_success": initial_success,
+                "final_success": final_success,
             },
             "timing": {
                 "total_workflow_time_seconds": workflow_duration_seconds,
+                "total_workflow_time_human": duration_human,
                 "llm_request_time_seconds": llm_time_seconds,
                 "rendering_and_other_time_seconds": workflow_duration_seconds - llm_time_seconds,
             },
-            "status": {
-                "final_success": final_success,
+            "usage": {
+                "total_prompt_tokens": total_prompt_tokens,
+                "total_completion_tokens": total_completion_tokens,
+                "total_tokens": total_tokens,
+                "total_cost_usd": total_cost,
+                "steps": token_usage_steps,
             },
-            "timestamp": datetime.now().isoformat(),
         }
 
-        summary_file = os.path.join(self.output_dir, "final_summary.json")
+        summary_file = os.path.join(self.output_dir, "workflow_summary.json")
         with open(summary_file, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
-        self.console.print(f"[bold cyan]Final summary saved to: {summary_file}[/bold cyan]")
+        self.console.print(f"[bold cyan]Workflow summary saved to: {summary_file}[/bold cyan]")

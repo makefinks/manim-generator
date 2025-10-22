@@ -22,7 +22,7 @@
 
 - After a successful run, the accepted script is saved as `<output_dir>/video.py`. Use `python manual_render.py` to re-render at high quality and concatenate scenes (`manual_render.py` uses `src.utils.video.render_and_concat`).
 - Intermediate frames, prompts, reviews, and reasoning are persisted under `<output_dir>/steps/<phase>/` for debugging. Frames live in a `frames/` subfolder; logs are collected in `logs.txt`.
-- Generated usage metrics (`token_usage_report.json`) and workflow metadata (`workflow_metadata.json`) are saved in the same `output_dir` via helpers in `src/utils/usage.py`.
+- A unified workflow summary (`workflow_summary.json`) is saved in the `output_dir`, containing all execution stats, timing, token usage, and costs.
 
 ## Repository map
 

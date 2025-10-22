@@ -147,7 +147,6 @@ def get_completion_with_retry(
         Exception: If max retries are exceeded and still getting rate limited.
     """
     retries = 0
-    llm_start_time = time.time()
 
     while retries < max_retries:
         try:
@@ -216,14 +215,13 @@ def get_completion_with_retry(
             retries += 1
         except Exception as e:
             console.print(f"[bold red]Error: {e}[/bold red]")
-            llm_end_time = time.time()
             empty_usage = {
                 "model": model,
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
                 "total_tokens": 0,
                 "cost": 0.0,
-                "llm_time": llm_end_time - llm_start_time,
+                "llm_time": 0.0,
             }
             return "Review model failed to generate response.", empty_usage, None
 
