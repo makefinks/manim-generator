@@ -74,6 +74,8 @@ class ArtifactManager:
         total_prompt_tokens: int,
         total_completion_tokens: int,
         total_tokens: int,
+        video_path: str | None = None,
+        args: dict | None = None,
     ) -> None:
         """Save a comprehensive final summary JSON with all key metrics."""
         summary = {
@@ -84,6 +86,7 @@ class ArtifactManager:
             },
             "input": {
                 "video_data": video_data,
+                "args": args,
             },
             "execution_stats": {
                 "review_cycles_completed": review_cycles,
@@ -104,6 +107,9 @@ class ArtifactManager:
                 "total_tokens": total_tokens,
                 "total_cost_usd": total_cost,
                 "steps": token_usage_steps,
+            },
+            "output": {
+                "video_path": video_path,
             },
         }
 

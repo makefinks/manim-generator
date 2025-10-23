@@ -52,6 +52,8 @@ def main():
     end_time = time.time()
     workflow_duration = end_time - start_time
 
+    video_path = workflow.finalize_output(working_code, current_code, combined_logs)
+
     if not headless:
         console.rule("[bold cyan]Workflow Summary", style="cyan")
         console.print(
@@ -64,6 +66,8 @@ def main():
         console.print(
             f"[cyan]Final working code:[/cyan] {'✓' if working_code is not None else '✗'}"
         )
+        if video_path:
+            console.print(f"[cyan]Final video:[/cyan] {video_path}")
 
         console.rule("[bold cyan]Token Usage & Cost Summary", style="cyan")
         token_usage_tracking = workflow.usage_tracker.get_tracking_data()
@@ -94,9 +98,9 @@ def main():
         total_prompt_tokens=total_prompt_tokens,
         total_completion_tokens=total_completion_tokens,
         total_tokens=token_usage_tracking["total_tokens"],
+        video_path=video_path,
+        args=config,
     )
-
-    workflow.finalize_output(working_code, current_code, combined_logs)
 
 
 if __name__ == "__main__":

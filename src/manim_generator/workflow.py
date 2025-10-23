@@ -418,11 +418,17 @@ class ManimWorkflow:
 
         return revised_code
 
-    def finalize_output(self, working_code: str | None, final_code: str, logs: str) -> None:
-        """Handle final output, saving, and rendering."""
+    def finalize_output(self, working_code: str | None, final_code: str, logs: str) -> str | None:
+        """Handle final output, saving, and rendering.
+
+        Returns:
+            str | None: The absolute path to the final video file if rendered, None otherwise
+        """
         if self.headless and self.headless_manager:
             self.headless_manager.update("Finalization")
             self.headless_manager.stop()
+
+        video_path = None
 
         if working_code:
             if self.headless or Confirm.ask("View final working code?"):
@@ -442,7 +448,14 @@ class ManimWorkflow:
                         "[bold blue]Would you like to render the final video?[/bold blue]"
                     ):
                         self.console.rule("[bold blue]Rendering Final Video", style="blue")
-                        render_and_concat(saved_file, self.config["output_dir"], "final_video.mp4")
+                        video_path = render_and_concat(
+                            saved_file, self.config["output_dir"], "final_video.mp4"
+                        )
+
+                        if video_path:
+                            self.console.print(
+                                f"[bold green]✓ Final video saved to: {video_path}[/bold green]"
+                            )
 
                         self.artifact_manager.save_step_artifacts("final", code=working_code)
                 else:
@@ -456,3 +469,5 @@ class ManimWorkflow:
                 self.console.print(
                     Panel(logs, title="[red]Execution Errors[/red]", border_style="red")
                 )
+
+        return video_path
