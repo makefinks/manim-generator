@@ -135,6 +135,7 @@ class ManimWorkflow:
             self.config.get("frame_extraction_mode", "fixed_count"),
             self.config.get("frame_count", 3),
             headless=self.headless,
+            scene_timeout=self.config.get("scene_timeout"),
         )
 
         if not self.headless:

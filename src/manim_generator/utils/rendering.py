@@ -30,6 +30,7 @@ def run_manim_multiscene(
     frame_extraction_mode: str = "fixed_count",
     frame_count: int = 3,
     headless: bool = False,
+    scene_timeout: int | float | None = None,
 ) -> tuple[bool, list[str], str, list[str]]:
     """
     Saves the code to a file, extracts scene names, and runs each scene individually.
@@ -45,6 +46,7 @@ def run_manim_multiscene(
         artifact_manager: Optional artifact manager instance
         frame_extraction_mode: "highest_density" for single best frame, "fixed_count" for multiple frames
         frame_count: Number of frames to extract in fixed_count mode
+        scene_timeout: Max seconds to allow a single scene render (None disables timeout)
 
     Returns a tuple containing:
       - a boolean success flag (True only if all scenes rendered successfully and files were found),
@@ -71,33 +73,38 @@ def run_manim_multiscene(
 
     # Run each scene
     for scene in scene_names:
+        command = [
+            "manim",
+            "-ql",  # low quality for speed; produces 480p15 folder
+            "--media_dir",
+            output_media_dir,
+            filename,
+            scene,
+        ]
+
+        def _run_scene() -> tuple[str, str, int, bool]:
+            process = subprocess.Popen(
+                command,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=os.environ.copy(),
+            )
+            timed_out = False
+            try:
+                stdout, stderr = process.communicate(timeout=scene_timeout)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                process.kill()
+                stdout, stderr = process.communicate()
+            return stdout, stderr, process.returncode, timed_out
+
         if headless:
-            command = [
-                "manim",
-                "-ql",  # low quality for speed; produces 480p15 folder
-                "--media_dir",
-                output_media_dir,
-                filename,
-                scene,
-            ]
-            process = subprocess.run(command, text=True, capture_output=True, env=os.environ.copy())
+            stdout, stderr, returncode, timed_out = _run_scene()
         else:
             with console.status(f"[bold blue]Rendering scene {scene}..."):
-                command = [
-                    "manim",
-                    "-ql",  # low quality for speed; produces 480p15 folder
-                    "--media_dir",
-                    output_media_dir,
-                    filename,
-                    scene,
-                ]
-                process = subprocess.run(
-                    command, text=True, capture_output=True, env=os.environ.copy()
-                )
+                stdout, stderr, returncode, timed_out = _run_scene()
 
-        # get output for each scene
-        stdout = process.stdout
-        stderr = process.stderr
         log_entry = (
             f"<{scene}>\n"
             f"\t<STDOUT>\n"
@@ -108,13 +115,23 @@ def run_manim_multiscene(
             f"\t</STDERR>\n"
             f"</{scene}>\n\n"
         )
+
+        if timed_out:
+            log_entry += f"<!> Scene {scene} timed out after {scene_timeout} seconds\n\n"
+
         combined_logs += log_entry
 
-        if process.returncode != 0:
+        if timed_out:
             rendering_success = False
             if not headless:
                 console.print(
-                    f"[red]Rendering scene {scene} failed with exit code {process.returncode}[/red]"
+                    f"[red]Rendering scene {scene} timed out after {scene_timeout} seconds[/red]"
+                )
+        elif returncode != 0:
+            rendering_success = False
+            if not headless:
+                console.print(
+                    f"[red]Rendering scene {scene} failed with exit code {returncode}[/red]"
                 )
         else:
             successful_scenes.append(scene)

@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
     "output_dir": None,
     "frame_extraction_mode": "highest_density",
     "frame_count": 3,
+    "scene_timeout": 120,
 }
 
 
@@ -148,6 +149,12 @@ class Config:
             help="Number of frames to extract when using fixed_count mode",
         )
         parser.add_argument(
+            "--scene-timeout",
+            type=int,
+            default=DEFAULT_CONFIG["scene_timeout"],
+            help="Maximum seconds allowed for a single scene render (set to 0 to disable)",
+        )
+        parser.add_argument(
             "--headless",
             action="store_true",
             default=False,
@@ -262,4 +269,5 @@ class Config:
             "frame_extraction_mode": args.frame_extraction_mode,
             "frame_count": args.frame_count,
             "headless": args.headless,
+            "scene_timeout": None if args.scene_timeout == 0 else args.scene_timeout,
         }

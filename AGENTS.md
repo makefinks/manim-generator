@@ -14,7 +14,7 @@
   - `--manim_model` / `--review_model` to swap models, `--review_cycles` to control iteration count.
   - `--force_vision` to attach rendered frames even if LiteLLM claims the model lacks vision; requires both models and the API provider to handle images.
   - Reasoning knobs: `--reasoning_effort` (OpenAI-style), `--reasoning_max_tokens` (Anthropic-style), `--reasoning_exclude` to hide reasoning traces from the response.
-  - Rendering helpers: `--manim_logs`, `--frame_extraction_mode {fixed_count,highest_density}`, `--frame_count N`, and `--success_threshold` (percentage of scenes that must succeed to unlock the enhanced visual review prompt).
+  - Rendering helpers: `--manim_logs`, `--frame_extraction_mode {fixed_count,highest_density}`, `--frame_count N`, `--scene_timeout SECONDS`, and `--success_threshold` (percentage of scenes that must succeed to unlock the enhanced visual review prompt).
   - `--output_dir` overrides the auto-generated folder (`<llm_name>_YYYYMMDD_HHMMSS`). Each run writes artifacts to `<output_dir>/steps/*`.
 - The workflow auto-checks LiteLLM’s cost table. If a model is unknown you’ll be prompted for price data in the console.
 

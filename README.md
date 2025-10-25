@@ -123,6 +123,7 @@ The script supports the following command-line arguments:
 | `--success-threshold`     | Percentage of scenes that must render successfully to trigger enhanced visual review mode   | 100                                            |
 | `--frame-extraction-mode` | Frame extraction mode: highest_density (single best frame) or fixed_count (multiple frames) | "highest_density"                              |
 | `--frame-count`           | Number of frames to extract when using fixed_count mode                                     | 3                                              |
+| `--scene-timeout`         | Maximum seconds allowed for a single scene render (set to 0 to disable)                     | 120                                            |
 | `--headless`              | Suppress most output and show only a single progress bar                                    | False                                          |
 
 #### Reasoning Tokens Configuration
