@@ -85,7 +85,7 @@ class ArtifactManager:
                 "review_model": review_model,
             },
             "input": {
-                "video_data": video_data,
+                "video_data": video_data.strip().replace("\n", ""),
                 "args": args,
             },
             "execution_stats": {

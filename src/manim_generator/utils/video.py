@@ -9,7 +9,7 @@ from manim_generator.utils.rendering import extract_scene_class_names
 logger = logging.getLogger(__name__)
 
 
-def render_and_concat(script_file: str, output_media_dir: str, final_output: str) -> None:
+def render_and_concat(script_file: str, output_media_dir: str, final_output: str) -> str | None:
     """
     Runs a Manim script as a subprocess, then concatenates the rendered scene videos
     (in the order they appear in the script) into one final video using ffmpeg.
@@ -18,6 +18,9 @@ def render_and_concat(script_file: str, output_media_dir: str, final_output: str
       script_file (str): Path to the Manim Python script (e.g. "video.py")
       output_media_dir (str): The media directory specified to Manim (e.g. "output")
       final_output (str): The filename for the concatenated final video (e.g. "final_video.mp4")
+
+    Returns:
+      str | None: Absolute path to the final concatenated video file, or None if rendering failed
     """
 
     # run Manim as a subprocess with real-time output
@@ -122,6 +125,7 @@ def render_and_concat(script_file: str, output_media_dir: str, final_output: str
 
     if ffmpeg_proc.returncode != 0:
         logger.error("Error during ffmpeg concatenation")
+        return None
     else:
         logger.info("Final concatenated video created at: %s", final_output_path)
     os.remove(concat_list_path)
@@ -164,3 +168,5 @@ def render_and_concat(script_file: str, output_media_dir: str, final_output: str
                 logger.error("Failed to play video: %s", str(e))
     else:
         logger.error("Could not determine appropriate video player command for this system")
+
+    return final_output_path

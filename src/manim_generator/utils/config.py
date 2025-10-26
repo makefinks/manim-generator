@@ -2,7 +2,7 @@ import argparse
 import os
 from datetime import datetime
 
-from litellm import completion, supports_vision
+from litellm.utils import supports_vision
 from rich.console import Console
 from rich.table import Table
 
@@ -189,28 +189,11 @@ class Config:
                 exit(1)
 
         output_dir = args.output_dir
-        short_file_desc = "manim_animation"
         if not output_dir and video_data:
-            try:
-                response = completion(
-                    model=args.manim_model,
-                    reasoning_effort="low",
-                    messages=[
-                        {
-                            "content": (
-                                "Generate a max 4 word file descriptor for this content, "
-                                "no suffix, underscores instead of spaces. Answer with "
-                                f"nothing else!: \n {video_data}"
-                            ),
-                            "role": "user",
-                        }
-                    ],
-                )
-                short_file_desc = f"{response.choices[0].message.content}"
-            except Exception as e:
-                print(e)
-                self.console.print(
-                    f"[bold yellow]Warning: Could not generate file descriptor: {e}. Using default.[/bold yellow]"
+            words = video_data.split()[:4]
+            if words:
+                short_file_desc = (
+                    "_".join(words).replace("\n", "_").replace("\r", "_").replace(" ", "_")
                 )
 
         if not output_dir:
