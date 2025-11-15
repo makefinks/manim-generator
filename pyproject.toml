@@ -29,7 +29,7 @@ test = ["pytest>=8.0.0"]
 
 [project.scripts]
 manim-generate = "manim_generator.main:main"
-manim-render = "manim_generator.cli:manual_render"
+manim-render = "manim_generator.manual_render:manual_render"
 
 [dependency-groups]
 dev = [

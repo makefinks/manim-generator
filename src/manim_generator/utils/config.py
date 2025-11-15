@@ -4,6 +4,7 @@ from datetime import datetime
 
 from litellm.utils import supports_vision
 from rich.console import Console
+from rich.prompt import Prompt
 from rich.table import Table
 
 # Default configuration
@@ -218,25 +219,6 @@ class Config:
         review_vision_support = supports_vision(model=args.review_model) or args.force_vision
         vision_enabled = main_vision_support and review_vision_support
 
-        # Display vision support as a table (unless headless)
-        if not args.headless:
-            table = Table(title="Vision Support Check")
-            table.add_column("Component", style="cyan")
-            table.add_column("Status", style="bold")
-            table.add_row(
-                "Main Model",
-                f"[{'green' if main_vision_support else 'yellow'}]{'Enabled' if main_vision_support else 'Disabled'}[/{'green' if main_vision_support else 'yellow'}]",
-            )
-            table.add_row(
-                "Review Model",
-                f"[{'green' if review_vision_support else 'yellow'}]{'Enabled' if review_vision_support else 'Disabled'}[/{'green' if review_vision_support else 'yellow'}]",
-            )
-            table.add_row(
-                "Combined",
-                f"[{'green' if vision_enabled else 'yellow'}]{'Enabled' if vision_enabled else 'Disabled'}[/{'green' if vision_enabled else 'yellow'}]",
-            )
-            self.console.print(table)
-
         # Build reasoning config
         reasoning_config = {}
         if args.reasoning_effort:
@@ -245,6 +227,23 @@ class Config:
             reasoning_config["max_tokens"] = args.reasoning_max_tokens
         if args.reasoning_exclude:
             reasoning_config["exclude"] = True
+
+        if not args.headless:
+            self.console.print(
+                self._build_settings_table(
+                    args=args,
+                    output_dir=output_dir,
+                    main_vision_support=main_vision_support,
+                    review_vision_support=review_vision_support,
+                    vision_enabled=vision_enabled,
+                    reasoning_config=reasoning_config,
+                )
+            )
+            if not self._confirm_settings():
+                self.console.print(
+                    "[bold yellow]Configuration not confirmed; aborting run.[/bold yellow]"
+                )
+                exit(0)
 
         # Build config from arguments
         return {
@@ -265,3 +264,113 @@ class Config:
             "headless": args.headless,
             "scene_timeout": None if args.scene_timeout == 0 else args.scene_timeout,
         }
+
+    def _build_settings_table(
+        self,
+        *,
+        args: argparse.Namespace,
+        output_dir: str,
+        main_vision_support: bool,
+        review_vision_support: bool,
+        vision_enabled: bool,
+        reasoning_config: dict,
+    ) -> Table:
+        """Build the Rich table that displays launch settings."""
+
+        table = Table(title="Launch Settings")
+        table.add_column("Setting", style="cyan", no_wrap=True)
+        table.add_column("Value", style="bold", overflow="fold")
+
+        video_source = (
+            f"Inline (--video-data): {args.video_data[:50]}"
+            if args.video_data
+            else args.video_data_file
+        )
+        temperature_value = (
+            "[yellow]Disabled (--no-temperature)[/yellow]"
+            if args.no_temperature
+            else str(args.temperature)
+        )
+        scene_timeout = (
+            "[yellow]Disabled[/yellow]" if args.scene_timeout == 0 else f"{args.scene_timeout}s"
+        )
+        reasoning_summary = self._format_reasoning_summary(reasoning_config)
+
+        table.add_row("Output Directory", output_dir)
+        table.add_row("Video Input", video_source or "video_data.txt")
+        table.add_row("Manim Model", args.manim_model)
+        table.add_row("Review Model", args.review_model)
+        table.add_row("Review Cycles", str(args.review_cycles))
+        table.add_row("Temperature", temperature_value)
+        table.add_row("Streaming", self._format_bool(args.streaming))
+        table.add_row("Show Manim Logs", self._format_bool(args.manim_logs))
+        table.add_row("Enhance Prompt Success Threshold", f"{args.success_threshold:g}%")
+        table.add_row("Frame Mode", args.frame_extraction_mode)
+        table.add_row(
+            "Frame Count",
+            str(args.frame_count) if args.frame_extraction_mode == "fixed_count" else "1",
+        )
+        table.add_row("Scene Rendering Timeout", scene_timeout)
+        table.add_row("Reasoning", reasoning_summary)
+        table.add_row("Provider", args.provider or "Auto")
+        table.add_row("Force Vision", self._format_bool(args.force_vision))
+        table.add_row(
+            "Vision (Main Model)",
+            self._format_bool(
+                main_vision_support,
+                true_label="Enabled",
+                false_label="Disabled",
+                false_color="yellow",
+            ),
+        )
+        table.add_row(
+            "Vision (Review Model)",
+            self._format_bool(
+                review_vision_support,
+                true_label="Enabled",
+                false_label="Disabled",
+                false_color="yellow",
+            ),
+        )
+        table.add_row(
+            "Vision Enabled",
+            self._format_bool(
+                vision_enabled,
+                true_label="Yes",
+                false_label="No",
+                false_color="yellow",
+            ),
+        )
+
+        return table
+
+    def _format_bool(
+        self,
+        value: bool,
+        *,
+        true_label: str = "Yes",
+        false_label: str = "No",
+        false_color: str = "red",
+    ) -> str:
+        """Return a colorized string for boolean values."""
+        color = "green" if value else false_color
+        label = true_label if value else false_label
+        return f"[{color}]{label}[/{color}]"
+
+    def _confirm_settings(self) -> bool:
+        """Prompt the user to confirm the displayed settings."""
+        response = Prompt.ask("Proceed with these settings?", choices=["y", "n"], default="y")
+        return response.lower() == "y"
+
+    def _format_reasoning_summary(self, reasoning_config: dict) -> str:
+        """Create a concise summary of the reasoning configuration."""
+        if not reasoning_config:
+            return "Disabled"
+
+        summary_parts: list[str] = []
+        if effort := reasoning_config.get("effort"):
+            summary_parts.append(f"effort={effort}")
+        if max_tokens := reasoning_config.get("max_tokens"):
+            summary_parts.append(f"max_tokens={max_tokens}")
+
+        return ", ".join(summary_parts)

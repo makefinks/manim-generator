@@ -432,35 +432,28 @@ class ManimWorkflow:
         video_path = None
 
         if working_code:
-            if self.headless or Confirm.ask("View final working code?"):
-                if not self.headless:
+            saved_file = save_code_to_file(
+                working_code, filename=f"{self.config['output_dir']}/video.py"
+            )
+            self.artifact_manager.save_step_artifacts("final", code=working_code)
+
+            if not self.headless:
+                self.console.print(f"[bold green]Code saved to: {saved_file}[/bold green]")
+                if Confirm.ask("View final working code?"):
                     self.console.rule("[bold green]Final Result", style="green")
                     print_code_with_syntax(working_code, self.console, "Final Manim Code")
 
-                saved_file = save_code_to_file(
-                    working_code, filename=f"{self.config['output_dir']}/video.py"
-                )
+                self.console.rule("[bold blue]Rendering Options", style="blue")
+                if Confirm.ask("[bold blue]Would you like to render the final video?[/bold blue]"):
+                    self.console.rule("[bold blue]Rendering Final Video", style="blue")
+                    video_path = render_and_concat(
+                        saved_file, self.config["output_dir"], "final_video.mp4"
+                    )
 
-                if not self.headless:
-                    self.console.print(f"[bold green]Code saved to: {saved_file}[/bold green]")
-
-                    self.console.rule("[bold blue]Rendering Options", style="blue")
-                    if Confirm.ask(
-                        "[bold blue]Would you like to render the final video?[/bold blue]"
-                    ):
-                        self.console.rule("[bold blue]Rendering Final Video", style="blue")
-                        video_path = render_and_concat(
-                            saved_file, self.config["output_dir"], "final_video.mp4"
+                    if video_path:
+                        self.console.print(
+                            f"[bold green]✓ Final video saved to: {video_path}[/bold green]"
                         )
-
-                        if video_path:
-                            self.console.print(
-                                f"[bold green]✓ Final video saved to: {video_path}[/bold green]"
-                            )
-
-                        self.artifact_manager.save_step_artifacts("final", code=working_code)
-                else:
-                    self.artifact_manager.save_step_artifacts("final", code=working_code)
         else:
             if not self.headless and Confirm.ask("View final non-working code?"):
                 self.console.rule(
