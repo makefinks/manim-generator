@@ -212,8 +212,6 @@ class Config:
             output_dir = (
                 f"output/{model_name}_{short_file_desc}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             )
-            if not args.headless:
-                print("File descriptor: " + short_file_desc)
         # Check if both models support vision/images
         main_vision_support = supports_vision(model=args.manim_model) or args.force_vision
         review_vision_support = supports_vision(model=args.review_model) or args.force_vision
