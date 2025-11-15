@@ -91,7 +91,7 @@ def _build_litellm_args(
     *,
     model: str,
     messages: list[dict],
-    temperature: float,
+    temperature: float | None,
     stream: bool,
     reasoning: dict | None,
     provider: str | None,
@@ -100,9 +100,10 @@ def _build_litellm_args(
     args: dict[str, Any] = {
         "model": model,
         "messages": messages,
-        "temperature": temperature,
         "stream": stream,
     }
+    if temperature is not None:
+        args["temperature"] = temperature
     if reasoning is not None:
         if model.startswith("openai/"):
             # HACK: only use reasoning effort when using openai API directly, reasoning dict does not work
@@ -119,7 +120,7 @@ def _build_litellm_args(
 def get_completion_with_retry(
     model: str,
     messages: list[dict],
-    temperature: float,
+    temperature: float | None,
     console: Console,
     max_retries: int = 5,
     reasoning: dict | None = None,
@@ -131,7 +132,7 @@ def get_completion_with_retry(
     Args:
         model (str): The name of the model to use for completion.
         messages (list[dict]): List of message dictionaries for the conversation.
-        temperature (float): Temperature parameter.
+        temperature (float | None): Temperature parameter. If None, temperature is skipped.
         console (Console): Rich console instance for logging.
         max_retries (int, optional): Maximum number of retry attempts. Defaults to 5.
         reasoning (dict | None, optional): Reasoning parameters. Defaults to None.
@@ -231,7 +232,7 @@ def get_completion_with_retry(
 def get_streaming_completion_with_retry(
     model: str,
     messages: list[dict],
-    temperature: float,
+    temperature: float | None,
     console: Console,
     max_retries: int = 5,
     reasoning: dict | None = None,
@@ -243,7 +244,7 @@ def get_streaming_completion_with_retry(
     Args:
         model (str): The name of the model to use for completion.
         messages (list[dict]): List of message dictionaries for the conversation.
-        temperature (float): Temperature parameter.
+        temperature (float | None): Temperature parameter. If None, temperature is skipped.
         console (Console): Rich console instance for logging.
         max_retries (int, optional): Maximum number of retry attempts. Defaults to 5.
         reasoning (dict, optional): Reasoning parameters. Defaults to None.

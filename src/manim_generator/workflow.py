@@ -72,7 +72,7 @@ class ManimWorkflow:
         response, usage_info, reasoning_content = get_response_with_status(
             self.config["manim_model"],
             main_messages,
-            self.config["temperature"],
+            None if self.config.get("no_temperature") else self.config["temperature"],
             self.config["streaming"],
             f"[bold green]Generating initial code \\[{self.config['manim_model']}\\]",
             self.console,
@@ -332,7 +332,7 @@ class ManimWorkflow:
         response, usage_info, reasoning_content = get_response_with_status(
             self.config["review_model"],
             review_message,
-            self.config["temperature"],
+            None if self.config.get("no_temperature") else self.config["temperature"],
             self.config["streaming"],
             status=f"[bold blue]Generating {'Enhanced Visual' if use_enhanced_prompt else 'Technical'} Review \\[{self.config['review_model']}\\]",
             console=self.console,
@@ -382,7 +382,7 @@ class ManimWorkflow:
         revised_response, usage_info, reasoning_content = get_response_with_status(
             self.config["manim_model"],
             revision_messages,
-            self.config["temperature"],
+            None if self.config.get("no_temperature") else self.config["temperature"],
             self.config["streaming"],
             f"[bold green]Generating code revision \\[{self.config['manim_model']}]",
             self.console,

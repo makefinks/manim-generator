@@ -97,7 +97,7 @@ class HeadlessProgressManager:
 def get_response_with_status(
     model: str,
     messages: list,
-    temperature: float,
+    temperature: float | None,
     streaming: bool,
     status: str | None,
     console: Console,

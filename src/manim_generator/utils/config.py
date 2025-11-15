@@ -98,6 +98,12 @@ class Config:
             default=DEFAULT_CONFIG["temperature"],
             help="Temperature for the LLM Model",
         )
+        parser.add_argument(
+            "--no-temperature",
+            action="store_true",
+            default=False,
+            help="Skip temperature parameter in LLM requests.",
+        )
 
         parser.add_argument(
             "--force-vision",
@@ -115,8 +121,11 @@ class Config:
         parser.add_argument(
             "--reasoning-effort",
             type=str,
-            choices=["minimal", "low", "medium", "high"],
-            help="Reasoning effort level for OpenAI-style models (minimal/low/medium/high). Note: Minimal is only to be used with GPT-5",
+            choices=["none", "minimal", "low", "medium", "high"],
+            help=(
+                "Reasoning effort level for OpenAI-style models "
+                "(none/minimal/low/medium/high). 'miminimal' specific to GPT-5 and 'none' specific to GPT-5.1"
+            ),
         )
         parser.add_argument(
             "--reasoning-max-tokens",
@@ -189,6 +198,7 @@ class Config:
                 exit(1)
 
         output_dir = args.output_dir
+        short_file_desc = "output"  # Default value
         if not output_dir and video_data:
             words = video_data.split()[:4]
             if words:
@@ -245,6 +255,7 @@ class Config:
             "manim_logs": args.manim_logs,
             "streaming": args.streaming,
             "temperature": args.temperature,
+            "no_temperature": args.no_temperature,
             "vision_enabled": vision_enabled,
             "reasoning": reasoning_config if reasoning_config else None,
             "provider": args.provider,

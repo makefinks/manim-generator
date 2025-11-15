@@ -130,7 +130,7 @@ The script supports the following command-line arguments:
 
 | Argument                 | Description                                                                                  | Default |
 | ------------------------ | -------------------------------------------------------------------------------------------- | ------- |
-| `--reasoning-effort`     | Reasoning effort level for OpenAI-style models (choices: "minimal", "low", "medium", "high") | -       |
+| `--reasoning-effort`     | Reasoning effort level for OpenAI-style models (choices: "none", "minimal", "low", "medium", "high") | -       |
 | `--reasoning-max-tokens` | Maximum tokens for reasoning (Anthropic-style)                                               | -       |
 | `--reasoning-exclude`    | Exclude reasoning tokens from response (model still uses reasoning internally)               | -       |
 
