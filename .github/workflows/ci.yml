@@ -33,6 +33,8 @@ jobs:
   test:
     name: Test - Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
