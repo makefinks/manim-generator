@@ -89,6 +89,7 @@ def render_and_concat(script_file: str, output_media_dir: str, final_output: str
             file_list.write(f"file '{abs_path}'\n")
 
     final_output_path = os.path.join(output_media_dir, final_output)
+    final_output_path = os.path.abspath(final_output_path)
 
     # use ffmpeg to concat individual scenes
     ffmpeg_command = [

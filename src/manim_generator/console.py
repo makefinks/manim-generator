@@ -184,8 +184,16 @@ def get_response_with_status(
 
     elapsed_time = time.time() - start_time
     if not headless:
+        reasoning_tokens = usage_info.get("reasoning_tokens", 0)
+        answer_tokens = usage_info.get("answer_tokens", usage_info.get("completion_tokens", 0))
         console.print(
-            f"[dim italic]Request completed in {elapsed_time:.2f} seconds | Input Tokens: {usage_info.get('prompt_tokens', 0)} | Output Tokens: {usage_info.get('completion_tokens', 0)} | Cost: ${usage_info.get('cost', 0):.6f}[/dim italic]"
+            "[dim italic]"
+            f"Request completed in {elapsed_time:.2f} seconds | "
+            f"Input Tokens: {usage_info.get('prompt_tokens', 0)} | "
+            f"Output Tokens: {usage_info.get('completion_tokens', 0)} "
+            f"(reasoning: {reasoning_tokens}, answer: {answer_tokens}) | "
+            f"Cost: ${usage_info.get('cost', 0):.6f}"
+            "[/dim italic]"
         )
 
     return response_text, usage_info, reasoning_content

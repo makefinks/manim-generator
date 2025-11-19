@@ -1,3 +1,5 @@
+import os
+
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -448,6 +450,7 @@ class ManimWorkflow:
                     )
 
                     if video_path:
+                        video_path = os.path.abspath(video_path)
                         self.console.print(
                             f"[bold green]✓ Final video saved to: {video_path}[/bold green]"
                         )

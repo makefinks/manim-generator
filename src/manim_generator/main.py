@@ -79,7 +79,12 @@ def main():
         console.print(f"[green]Output saved to: {config['output_dir']}/video.py[/green]")
 
     token_usage_tracking = workflow.usage_tracker.get_tracking_data()
-    total_prompt_tokens, total_completion_tokens = get_usage_totals(token_usage_tracking)
+    (
+        total_prompt_tokens,
+        total_completion_tokens,
+        total_reasoning_tokens,
+        total_answer_tokens,
+    ) = get_usage_totals(token_usage_tracking)
 
     workflow.artifact_manager.save_final_summary(
         manim_model=config["manim_model"],
@@ -97,6 +102,8 @@ def main():
         token_usage_steps=token_usage_tracking["steps"],
         total_prompt_tokens=total_prompt_tokens,
         total_completion_tokens=total_completion_tokens,
+        total_reasoning_tokens=total_reasoning_tokens,
+        total_answer_tokens=total_answer_tokens,
         total_tokens=token_usage_tracking["total_tokens"],
         video_path=video_path,
         args=config,

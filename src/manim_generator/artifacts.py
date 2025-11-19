@@ -73,11 +73,15 @@ class ArtifactManager:
         token_usage_steps: list,
         total_prompt_tokens: int,
         total_completion_tokens: int,
+        total_reasoning_tokens: int,
+        total_answer_tokens: int,
         total_tokens: int,
         video_path: str | None = None,
         args: dict | None = None,
     ) -> None:
         """Save a comprehensive final summary JSON with all key metrics."""
+        normalized_video_path = os.path.abspath(video_path) if video_path else None
+
         summary = {
             "timestamp": datetime.now().isoformat(),
             "models": {
@@ -104,12 +108,14 @@ class ArtifactManager:
             "usage": {
                 "total_prompt_tokens": total_prompt_tokens,
                 "total_completion_tokens": total_completion_tokens,
+                "total_reasoning_tokens": total_reasoning_tokens,
+                "total_answer_tokens": total_answer_tokens,
                 "total_tokens": total_tokens,
                 "total_cost_usd": total_cost,
                 "steps": token_usage_steps,
             },
             "output": {
-                "video_path": video_path,
+                "video_path": normalized_video_path,
             },
         }
 

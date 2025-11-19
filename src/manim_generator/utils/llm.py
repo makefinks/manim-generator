@@ -95,6 +95,66 @@ class CompletionResult:
 litellm.drop_params = True
 
 
+def _extract_completion_details(raw_details: Any) -> dict[str, int]:
+    """Convert completion token details into a JSON-serializable dict."""
+    if raw_details is None:
+        return {}
+
+    keys = [
+        "text_tokens",
+        "reasoning_tokens",
+        "accepted_prediction_tokens",
+        "rejected_prediction_tokens",
+        "audio_tokens",
+    ]
+    completion_details: dict[str, int] = {}
+    for key in keys:
+        if isinstance(raw_details, dict):
+            value = raw_details.get(key)
+        else:
+            value = getattr(raw_details, key, None)
+
+        if value is not None:
+            completion_details[key] = int(value)
+    return completion_details
+
+
+def _build_usage_info(model: str, usage: Any, cost: float, llm_time: float) -> dict[str, object]:
+    """Normalize usage payload with reasoning token details."""
+    prompt_tokens = int((getattr(usage, "prompt_tokens", None) if usage else None) or 0)
+    completion_tokens = int((getattr(usage, "completion_tokens", None) if usage else None) or 0)
+    total_tokens = int((getattr(usage, "total_tokens", None) if usage else None) or 0)
+
+    completion_details_raw = getattr(usage, "completion_tokens_details", None) if usage else None
+    completion_details = _extract_completion_details(completion_details_raw)
+
+    reasoning_tokens = int(completion_details.get("reasoning_tokens", 0) or 0)
+    text_tokens = completion_details.get("text_tokens")
+
+    if text_tokens is not None:
+        answer_tokens = int(text_tokens or 0)
+    elif reasoning_tokens:
+        answer_tokens = max(completion_tokens - reasoning_tokens, 0)
+    else:
+        answer_tokens = completion_tokens
+
+    usage_info: dict[str, object] = {
+        "model": model,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": total_tokens,
+        "reasoning_tokens": reasoning_tokens,
+        "answer_tokens": answer_tokens,
+        "cost": cost,
+        "llm_time": llm_time,
+    }
+
+    if completion_details:
+        usage_info["completion_tokens_details"] = completion_details
+
+    return usage_info
+
+
 def check_and_register_models(models: list[str], console: Console, headless: bool = False) -> None:
     """
     Checks if models are registered in the LiteLLM cost map.
@@ -220,20 +280,12 @@ def get_completion_with_retry(
                 cost = 0.0
 
             # Extract usage information
-            usage_info = {
-                "model": model,
-                "prompt_tokens": response.usage.prompt_tokens  # type: ignore
-                if hasattr(response, "usage") and response.usage  # type: ignore
-                else 0,
-                "completion_tokens": response.usage.completion_tokens  # type: ignore
-                if hasattr(response, "usage") and response.usage  # type: ignore
-                else 0,
-                "total_tokens": response.usage.total_tokens  # type: ignore
-                if hasattr(response, "usage") and response.usage  # type: ignore
-                else 0,
-                "cost": cost,
-                "llm_time": llm_time,
-            }
+            usage_info = _build_usage_info(
+                model=model,
+                usage=response.usage if hasattr(response, "usage") else None,
+                cost=cost,
+                llm_time=llm_time,
+            )
 
             # extract reasoning content if available
             reasoning_content = None
@@ -326,6 +378,8 @@ def get_streaming_completion_with_retry(
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
                 "total_tokens": 0,
+                "reasoning_tokens": 0,
+                "answer_tokens": 0,
                 "cost": 0.0,
                 "llm_time": 0.0,
             }
@@ -348,14 +402,12 @@ def get_streaming_completion_with_retry(
                             cost = 0.0
 
                         stream_end = time.time()
-                        final_usage = {
-                            "model": model,
-                            "prompt_tokens": chunk.usage.prompt_tokens or 0,  # type: ignore
-                            "completion_tokens": chunk.usage.completion_tokens or 0,  # type: ignore
-                            "total_tokens": chunk.usage.total_tokens or 0,  # type: ignore
-                            "cost": cost,
-                            "llm_time": stream_end - stream_start,
-                        }
+                        final_usage = _build_usage_info(
+                            model=model,
+                            usage=chunk.usage,  # type: ignore
+                            cost=cost,
+                            llm_time=stream_end - stream_start,
+                        )
 
                     yield StreamChunk(
                         token=token,

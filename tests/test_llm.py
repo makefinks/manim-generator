@@ -1,12 +1,14 @@
 """Tests for the LLM utilities."""
 
 import unittest
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from rich.console import Console
 
 from manim_generator.utils.llm import (
     LiteLLMParams,
+    _build_usage_info,
     check_and_register_models,
     get_completion_with_retry,
     get_streaming_completion_with_retry,
@@ -211,6 +213,32 @@ class TestGetStreamingCompletionWithRetry(unittest.TestCase):
         self.assertEqual(chunks[0].response, "Hello")
         self.assertEqual(chunks[1].token, " world")
         self.assertEqual(chunks[1].response, "Hello world")
+
+
+class TestBuildUsageInfo(unittest.TestCase):
+    """Tests for usage normalization helpers."""
+
+    def test_handles_missing_usage_counts(self):
+        """Ensure missing token counts default to zero without crashing."""
+        usage = SimpleNamespace(
+            prompt_tokens=None,
+            completion_tokens=None,
+            total_tokens=None,
+            completion_tokens_details=None,
+        )
+
+        usage_info = _build_usage_info(
+            model="gpt-4",
+            usage=usage,
+            cost=0.001,
+            llm_time=0.25,
+        )
+
+        self.assertEqual(usage_info["prompt_tokens"], 0)
+        self.assertEqual(usage_info["completion_tokens"], 0)
+        self.assertEqual(usage_info["total_tokens"], 0)
+        self.assertEqual(usage_info["reasoning_tokens"], 0)
+        self.assertEqual(usage_info["answer_tokens"], 0)
 
 
 if __name__ == "__main__":
