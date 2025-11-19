@@ -79,7 +79,6 @@ class ManimWorkflow:
             reasoning=self.config["reasoning"],
             provider=self.config["provider"],
             headless=self.headless,
-            headless_manager=self.headless_manager,
         )
 
         self.usage_tracker.add_step(
@@ -339,7 +338,6 @@ class ManimWorkflow:
             reasoning=self.config["reasoning"],
             provider=self.config["provider"],
             headless=self.headless,
-            headless_manager=self.headless_manager,
         )
 
         self.usage_tracker.add_step(
@@ -389,7 +387,6 @@ class ManimWorkflow:
             reasoning=self.config["reasoning"],
             provider=self.config["provider"],
             headless=self.headless,
-            headless_manager=self.headless_manager,
         )
 
         if not self.headless:

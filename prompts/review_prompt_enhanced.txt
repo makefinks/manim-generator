@@ -40,5 +40,7 @@ Put special focus on the following aspects:
 - Be tasteful, do not overdo it, keep the styling minimal but elegant, according to modern design principles
 
 Do NOT propose to use external resources or dependencies like svg's, images, or other libraries.
+Do NOT propose config adjustments like `config.quality` in the review.
+Do NOT respond with the improved code. Instead describe the changes that should be made.
 
 Give feedback that will make the video more visually appealing and engaging, even if the current version works correctly. 

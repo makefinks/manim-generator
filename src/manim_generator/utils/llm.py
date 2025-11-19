@@ -1,17 +1,95 @@
 """Utility functions for LLM interaction"""
 
-import re
 import time
 from collections.abc import Generator
+from dataclasses import dataclass
 from typing import Any
 
 import litellm
-from litellm import completion, model_cost
+from litellm import RateLimitError, completion, model_cost
 from litellm.cost_calculator import completion_cost  # type: ignore
 from litellm.utils import register_model  # type: ignore
-from openai import RateLimitError
 from rich.console import Console
 from rich.prompt import Prompt
+
+
+@dataclass
+class LiteLLMParams:
+    """Container for LiteLLM completion configuration."""
+
+    model: str
+    messages: list[dict]
+    stream: bool
+    temperature: float | None = None
+    reasoning: dict | None = None
+    provider: str | None = None
+
+    def to_kwargs(self) -> dict[str, Any]:
+        """Convert parameters to litellm.completion kwargs."""
+        args: dict[str, Any] = {
+            "model": self.model,
+            "messages": self.messages,
+            "stream": self.stream,
+        }
+        if self.temperature is not None:
+            args["temperature"] = self.temperature
+        if self.reasoning is not None:
+            if self._requires_openai_reasoning_effort():
+                # OpenAI endpoints expect reasoning_effort instead of reasoning dict
+                args["reasoning_effort"] = self.reasoning["effort"]
+            else:
+                args["reasoning"] = self.reasoning
+        if self.provider is not None:
+            args["provider"] = {"order": [self.provider]}
+        return args
+
+    def _requires_openai_reasoning_effort(self) -> bool:
+        """
+        Detects when to send `reasoning_effort` instead of `reasoning`.
+
+        OpenAI's direct API uses `reasoning_effort`; routers typically accept
+        the full reasoning payload.
+        """
+        if self.provider == "openai":
+            return True
+        return self.model.startswith(("openai/", "gpt-", "o1-", "o3-"))
+
+
+@dataclass
+class StreamChunk:
+    """
+    Structured streaming response payload.
+
+    Attributes:
+        token: Latest text token emitted.
+        response: Accumulated response text so far.
+        usage: Usage and timing info, populated when available.
+        reasoning_token: Latest reasoning token emitted.
+        reasoning_content: Accumulated reasoning content so far.
+    """
+
+    token: str
+    response: str
+    usage: dict[str, object]
+    reasoning_token: str
+    reasoning_content: str
+
+
+@dataclass
+class CompletionResult:
+    """
+    Structured non-streaming completion response payload.
+
+    Attributes:
+        content: Model response text.
+        usage: Usage and timing information.
+        reasoning: Optional reasoning content.
+    """
+
+    content: str
+    usage: dict[str, object]
+    reasoning: str | None
+
 
 # for safety drop unsupported params
 litellm.drop_params = True
@@ -87,36 +165,6 @@ def check_and_register_models(models: list[str], console: Console, headless: boo
                 )
 
 
-def _build_litellm_args(
-    *,
-    model: str,
-    messages: list[dict],
-    temperature: float | None,
-    stream: bool,
-    reasoning: dict | None,
-    provider: str | None,
-) -> dict[str, Any]:
-    """Builds a standardized argument dict for litellm.completion."""
-    args: dict[str, Any] = {
-        "model": model,
-        "messages": messages,
-        "stream": stream,
-    }
-    if temperature is not None:
-        args["temperature"] = temperature
-    if reasoning is not None:
-        if model.startswith("openai/"):
-            # HACK: only use reasoning effort when using openai API directly, reasoning dict does not work
-            # Litellm drop_params does not work here
-            args["reasoning_effort"] = reasoning["effort"]
-        else:
-            args["reasoning"] = reasoning
-    if provider is not None:
-        args["provider"] = {"order": [provider]}
-
-    return args
-
-
 def get_completion_with_retry(
     model: str,
     messages: list[dict],
@@ -125,7 +173,7 @@ def get_completion_with_retry(
     max_retries: int = 5,
     reasoning: dict | None = None,
     provider: str | None = None,
-) -> tuple[str, dict[str, object], str | None]:
+) -> CompletionResult:
     """
     Makes a non-streaming LLM completion request with automatic retry on rate limit errors.
 
@@ -139,10 +187,7 @@ def get_completion_with_retry(
         provider (str | None, optional): Provider to use. Defaults to None.
 
     Returns:
-        tuple[str, dict[str, object], str | None]: A tuple containing:
-            - The generated completion text from the model
-            - Usage information including tokens, cost, and llm_time
-            - Reasoning content if available, otherwise None
+        CompletionResult: Structured response containing content, usage, and reasoning (if any).
 
     Raises:
         Exception: If max retries are exceeded and still getting rate limited.
@@ -151,7 +196,7 @@ def get_completion_with_retry(
 
     while retries < max_retries:
         try:
-            completion_args = _build_litellm_args(
+            params = LiteLLMParams(
                 model=model,
                 messages=messages,
                 temperature=temperature,
@@ -159,6 +204,7 @@ def get_completion_with_retry(
                 reasoning=reasoning,
                 provider=provider,
             )
+            completion_args = params.to_kwargs()
 
             request_start = time.time()
             response = completion(**completion_args)  # type: ignore
@@ -195,25 +241,19 @@ def get_completion_with_retry(
             if hasattr(message, "reasoning_content") and message.reasoning_content:
                 reasoning_content = message.reasoning_content
 
-            return response_content, usage_info, reasoning_content
+            return CompletionResult(
+                content=response_content,
+                usage=usage_info,
+                reasoning=reasoning_content,
+            )
 
-        except RateLimitError as e:
-            # Extract wait time from error message if available
-            # this is openrouter specific
-            match = re.search(r"try again in (\d+\.?\d*)s", str(e))
-            if match:
-                wait_time = float(match.group(1))
-                console.log(
-                    f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
-                )
-                time.sleep(wait_time + 2)
-            else:
-                wait_time = 2
-                console.log(
-                    f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
-                )
-                time.sleep(wait_time)
+        except RateLimitError:
             retries += 1
+            wait_time = min(2 * retries, 30)
+            console.log(
+                f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
+            )
+            time.sleep(wait_time)
         except Exception as e:
             console.print(f"[bold red]Error: {e}[/bold red]")
             empty_usage = {
@@ -224,7 +264,11 @@ def get_completion_with_retry(
                 "cost": 0.0,
                 "llm_time": 0.0,
             }
-            return "Review model failed to generate response.", empty_usage, None
+            return CompletionResult(
+                content="Review model failed to generate response.",
+                usage=empty_usage,
+                reasoning=None,
+            )
 
     raise Exception("[bold red]Max retries exceeded.[/bold red]")
 
@@ -237,7 +281,7 @@ def get_streaming_completion_with_retry(
     max_retries: int = 5,
     reasoning: dict | None = None,
     provider: str | None = None,
-) -> Generator[tuple[str, str, dict[str, object]], None, None]:
+) -> Generator[StreamChunk, None, None]:
     """
     Makes a streaming LLM completion request with automatic retry on rate limit errors.
 
@@ -251,10 +295,9 @@ def get_streaming_completion_with_retry(
         provider (str, optional): Provider to use. Defaults to None.
 
     Yields:
-        tuple[str, str, dict[str, object]]: A tuple containing:
-            - The current token
-            - The full accumulated response so far
-            - Usage information (includes llm_time when complete)
+        StreamChunk: Structured streaming payload containing the latest token,
+            accumulated response, usage data, current reasoning token, and full
+            reasoning content seen so far.
 
     Raises:
         Exception: If max retries are exceeded and still getting rate limited.
@@ -263,7 +306,7 @@ def get_streaming_completion_with_retry(
 
     while retries < max_retries:
         try:
-            completion_args = _build_litellm_args(
+            params = LiteLLMParams(
                 model=model,
                 messages=messages,
                 temperature=temperature,
@@ -271,11 +314,13 @@ def get_streaming_completion_with_retry(
                 reasoning=reasoning,
                 provider=provider,
             )
+            completion_args = params.to_kwargs()
             completion_args["stream_options"] = {"include_usage": True}
 
             stream_start = time.time()
             response = completion(**completion_args)  # type: ignore
             full_response = ""
+            full_reasoning = ""
             final_usage = {
                 "model": model,
                 "prompt_tokens": 0,
@@ -287,8 +332,14 @@ def get_streaming_completion_with_retry(
 
             for chunk in response:
                 try:
-                    token = chunk.choices[0].delta.content or ""  # type: ignore
-                    full_response += token
+                    delta = chunk.choices[0].delta  # type: ignore
+                    token = getattr(delta, "content", None) or ""
+                    reasoning_token = getattr(delta, "reasoning_content", None) or ""
+
+                    if token:
+                        full_response += token
+                    if reasoning_token:
+                        full_reasoning += reasoning_token
 
                     if hasattr(chunk, "usage") and chunk.usage:  # type: ignore
                         try:
@@ -306,27 +357,31 @@ def get_streaming_completion_with_retry(
                             "llm_time": stream_end - stream_start,
                         }
 
-                    yield (token, full_response, final_usage)
+                    yield StreamChunk(
+                        token=token,
+                        response=full_response,
+                        usage=final_usage,
+                        reasoning_token=reasoning_token,
+                        reasoning_content=full_reasoning,
+                    )
                 except Exception as e:
                     console.print(f"[bold red]Error processing stream chunk: {e}[/bold red]")
                     raise e
 
-            yield ("", full_response, final_usage)
+            yield StreamChunk(
+                token="",
+                response=full_response,
+                usage=final_usage,
+                reasoning_token="",
+                reasoning_content=full_reasoning,
+            )
             return
-        except RateLimitError as e:
-            match = re.search(r"try again in (\d+\.?\d*)s", str(e))
-            if match:
-                wait_time = float(match.group(1))
-                console.log(
-                    f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
-                )
-                time.sleep(wait_time + 2)
-            else:
-                wait_time = 2
-                console.log(
-                    f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
-                )
-                time.sleep(wait_time)
+        except RateLimitError:
             retries += 1
+            wait_time = min(2 * retries, 30)
+            console.log(
+                f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
+            )
+            time.sleep(wait_time)
 
     raise Exception("[bold red]Max retries exceeded.[/bold red]")

@@ -104,7 +104,6 @@ def get_response_with_status(
     reasoning: dict | None = None,
     provider: str | None = None,
     headless: bool = False,
-    headless_manager=None,
 ) -> tuple[str, dict[str, object], str | None]:
     """Gets a response from the model, handling streaming if enabled.
 
@@ -114,7 +113,6 @@ def get_response_with_status(
     start_time = time.time()
     reasoning_content = None
 
-    # TODO: Streaming implementation has flickering and leaves artificats on scroll - needs fix
     if streaming and not headless:
         stream_gen = get_streaming_completion_with_retry(
             model=model,
@@ -126,16 +124,29 @@ def get_response_with_status(
         )
         usage_info: dict[str, object] = {}
         full_response = ""
+        full_reasoning = ""
+        reasoning_started = False
+        answer_started = False
 
-        for token, response, usage in stream_gen:
-            if token:
-                console.print(token, end="")
-            full_response = response
-            usage_info = usage
+        for chunk in stream_gen:
+            if chunk.reasoning_token:
+                if not reasoning_started:
+                    console.print("\n[dim #C0C0C0]Reasoning:[/dim #C0C0C0] ", end="\n")
+                    reasoning_started = True
+                console.print(chunk.reasoning_token, end="", style="dim #C0C0C0")
+            if chunk.token:
+                if reasoning_started and not answer_started:
+                    console.print("\n[bold green]Answer:\n[/bold green] ", end="")
+                    answer_started = True
+                console.print(chunk.token, end="")
+            full_response = chunk.response
+            usage_info = chunk.usage
+            full_reasoning = chunk.reasoning_content
 
         response_text = full_response
+        reasoning_content = full_reasoning
     elif headless:
-        response_text, usage_info, reasoning_content = get_completion_with_retry(
+        result = get_completion_with_retry(
             model=model,
             messages=messages,
             temperature=temperature,
@@ -143,6 +154,9 @@ def get_response_with_status(
             reasoning=reasoning,
             provider=provider,
         )
+        response_text = result.content
+        usage_info = result.usage
+        reasoning_content = result.reasoning
     else:
         with Progress(
             SpinnerColumn(),
@@ -155,7 +169,7 @@ def get_response_with_status(
                 total=None,
             )
 
-            response_text, usage_info, reasoning_content = get_completion_with_retry(
+            result = get_completion_with_retry(
                 model=model,
                 messages=messages,
                 temperature=temperature,
@@ -163,6 +177,9 @@ def get_response_with_status(
                 reasoning=reasoning,
                 provider=provider,
             )
+            response_text = result.content
+            usage_info = result.usage
+            reasoning_content = result.reasoning
             progress.update(task, completed=True)
 
     elapsed_time = time.time() - start_time
@@ -171,7 +188,7 @@ def get_response_with_status(
             f"[dim italic]Request completed in {elapsed_time:.2f} seconds | Input Tokens: {usage_info.get('prompt_tokens', 0)} | Output Tokens: {usage_info.get('completion_tokens', 0)} | Cost: ${usage_info.get('cost', 0):.6f}[/dim italic]"
         )
 
-    return response_text, usage_info, reasoning_content if not streaming else None
+    return response_text, usage_info, reasoning_content
 
 
 def print_code_with_syntax(code: str, console: Console, title: str = "Code") -> None:

@@ -34,5 +34,7 @@ Put special focus on the following aspects:
 - Only use functions that are part of the manim community v0.19.0 library or standard python libary.
 
 Do NOT propose to use external resources or dependencies like svg's, images, or other libraries.
+Do NOT propose config adjustments like `config.quality` in the review.
+Do NOT respond with the improved code. Instead describe the changes that should be made.
 
 Do not mention minor things like missing comments. Give feedback that is crucial to the functionality of the script.

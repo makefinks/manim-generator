@@ -13,6 +13,7 @@ You are free to structure the video to your liking but keep the following things
 - Do not create a class aggregating these scenes
 - Be aware of the screen size and resolution and make sure elements do not overlap or go out of frame
 - Do NOT use external resources or dependencies like svg's, images, or other libraries.
+- Do not adjust the manim configuration inside the code. Config adjustments like `config.quality` or `config.output_file` are forbidden.
 - Each Scene should have a title at the top and contents which are displayed below.
 - Keep in mind pacing and timing to ensure the video flows well and is engaging to watch.
 

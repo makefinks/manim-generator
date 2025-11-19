@@ -6,15 +6,15 @@ from unittest.mock import MagicMock, patch
 from rich.console import Console
 
 from manim_generator.utils.llm import (
-    _build_litellm_args,
+    LiteLLMParams,
     check_and_register_models,
     get_completion_with_retry,
     get_streaming_completion_with_retry,
 )
 
 
-class TestBuildLiteLLMArgs(unittest.TestCase):
-    """Test cases for _build_litellm_args function."""
+class TestLiteLLMParams(unittest.TestCase):
+    """Test cases for LiteLLMParams.to_kwargs."""
 
     def test_basic_args(self):
         """Test building basic arguments without reasoning or provider."""
@@ -23,7 +23,7 @@ class TestBuildLiteLLMArgs(unittest.TestCase):
         temperature = 0.5
         stream = False
 
-        args = _build_litellm_args(
+        params = LiteLLMParams(
             model=model,
             messages=messages,
             temperature=temperature,
@@ -31,6 +31,8 @@ class TestBuildLiteLLMArgs(unittest.TestCase):
             reasoning=None,
             provider=None,
         )
+
+        args = params.to_kwargs()
 
         self.assertEqual(args["model"], model)
         self.assertEqual(args["messages"], messages)
@@ -42,7 +44,7 @@ class TestBuildLiteLLMArgs(unittest.TestCase):
     def test_with_reasoning_openai(self):
         """Test building arguments with OpenAI reasoning."""
         reasoning = {"effort": "high"}
-        args = _build_litellm_args(
+        params = LiteLLMParams(
             model="openai/gpt-4",
             messages=[],
             temperature=0.5,
@@ -51,6 +53,8 @@ class TestBuildLiteLLMArgs(unittest.TestCase):
             provider=None,
         )
 
+        args = params.to_kwargs()
+
         self.assertIn("reasoning_effort", args)
         self.assertEqual(args["reasoning_effort"], "high")
         self.assertNotIn("reasoning", args)
@@ -58,7 +62,7 @@ class TestBuildLiteLLMArgs(unittest.TestCase):
     def test_with_reasoning_non_openai(self):
         """Test building arguments with non-OpenAI reasoning."""
         reasoning = {"effort": "medium"}
-        args = _build_litellm_args(
+        params = LiteLLMParams(
             model="anthropic/claude-3-opus",
             messages=[],
             temperature=0.5,
@@ -67,13 +71,15 @@ class TestBuildLiteLLMArgs(unittest.TestCase):
             provider=None,
         )
 
+        args = params.to_kwargs()
+
         self.assertIn("reasoning", args)
         self.assertEqual(args["reasoning"], reasoning)
         self.assertNotIn("reasoning_effort", args)
 
     def test_with_provider(self):
         """Test building arguments with provider."""
-        args = _build_litellm_args(
+        params = LiteLLMParams(
             model="gpt-4",
             messages=[],
             temperature=0.5,
@@ -81,6 +87,8 @@ class TestBuildLiteLLMArgs(unittest.TestCase):
             reasoning=None,
             provider="openrouter",
         )
+
+        args = params.to_kwargs()
 
         self.assertIn("provider", args)
         self.assertEqual(args["provider"], {"order": ["openrouter"]})
@@ -137,17 +145,17 @@ class TestGetCompletionWithRetry(unittest.TestCase):
         mock_cost.return_value = 0.001
 
         console = Console()
-        content, usage, reasoning = get_completion_with_retry(
+        result = get_completion_with_retry(
             model="gpt-4",
             messages=[{"role": "user", "content": "Test"}],
             temperature=0.5,
             console=console,
         )
 
-        self.assertEqual(content, "Test response")
-        self.assertEqual(usage["total_tokens"], 150)
-        self.assertEqual(usage["cost"], 0.001)
-        self.assertIsNone(reasoning)
+        self.assertEqual(result.content, "Test response")
+        self.assertEqual(result.usage["total_tokens"], 150)
+        self.assertEqual(result.usage["cost"], 0.001)
+        self.assertIsNone(result.reasoning)
 
     @patch("manim_generator.utils.llm.completion")
     def test_completion_with_reasoning(self, mock_completion):
@@ -167,14 +175,14 @@ class TestGetCompletionWithRetry(unittest.TestCase):
         mock_completion.return_value = mock_response
 
         console = Console()
-        content, usage, reasoning = get_completion_with_retry(
+        result = get_completion_with_retry(
             model="gpt-4",
             messages=[{"role": "user", "content": "Test"}],
             temperature=0.5,
             console=console,
         )
 
-        self.assertEqual(reasoning, "Test reasoning")
+        self.assertEqual(result.reasoning, "Test reasoning")
 
 
 class TestGetStreamingCompletionWithRetry(unittest.TestCase):
@@ -199,10 +207,10 @@ class TestGetStreamingCompletionWithRetry(unittest.TestCase):
 
         chunks = list(generator)
         self.assertEqual(len(chunks), 3)  # 2 chunks + 1 final empty
-        self.assertEqual(chunks[0][0], "Hello")
-        self.assertEqual(chunks[0][1], "Hello")
-        self.assertEqual(chunks[1][0], " world")
-        self.assertEqual(chunks[1][1], "Hello world")
+        self.assertEqual(chunks[0].token, "Hello")
+        self.assertEqual(chunks[0].response, "Hello")
+        self.assertEqual(chunks[1].token, " world")
+        self.assertEqual(chunks[1].response, "Hello world")
 
 
 if __name__ == "__main__":
