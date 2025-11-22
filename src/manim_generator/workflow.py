@@ -39,6 +39,7 @@ class ManimWorkflow:
         self.cycles_completed = 0
         self.execution_count = 0
         self.successful_executions = 0
+        self.execution_history: list[dict] = []
         self.initial_success = False
         self.headless = config.get("headless", False)
         self.headless_manager = None
@@ -139,12 +140,26 @@ class ManimWorkflow:
             scene_timeout=self.config.get("scene_timeout"),
         )
 
+        scene_names = extract_scene_class_names(code)
+        requested_scenes = None if isinstance(scene_names, Exception) else scene_names
+
         if not self.headless:
-            self._display_execution_status(success, frames, code, logs, successful_scenes)
+            self._display_execution_status(
+                success, frames, logs, successful_scenes, requested_scenes
+            )
 
         self.execution_count += 1
         if success:
             self.successful_executions += 1
+
+        self.execution_history.append(
+            {
+                "step": step_name,
+                "success": success,
+                "successful_scenes": successful_scenes,
+                "requested_scenes": requested_scenes,
+            }
+        )
 
         if self.headless and self.headless_manager:
             self.headless_manager.increment_execution(success)
@@ -156,13 +171,20 @@ class ManimWorkflow:
         return success, frames, logs, successful_scenes
 
     def _display_execution_status(
-        self, success: bool, frames: list, code: str, logs: str, successful_scenes: list[str]
+        self,
+        success: bool,
+        frames: list,
+        logs: str,
+        successful_scenes: list[str],
+        scene_names: list[str] | None,
     ) -> None:
         """Display execution status information."""
         status_color = "green" if success else "red"
 
-        scene_names = extract_scene_class_names(code)
-        scenes_rendered = f"{len(successful_scenes)} of {len(scene_names) if isinstance(scene_names, list) else '? (Syntax error)'}"
+        if scene_names is None:
+            scenes_rendered = f"{len(successful_scenes)} of ? (Parsing error)"
+        else:
+            scenes_rendered = f"{len(successful_scenes)} of {len(scene_names)}"
 
         self.console.print(
             f"[bold {status_color}]Execution Status: {'Success' if success else 'Failed'}[/bold {status_color}]"

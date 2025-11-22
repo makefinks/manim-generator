@@ -14,6 +14,7 @@ class ArtifactManager:
         self.output_dir = output_dir
         self.console = console
         self.steps_dir = os.path.join(output_dir, "steps")
+        self.artifact_index: dict[str, dict[str, str]] = {}
         os.makedirs(self.steps_dir, exist_ok=True)
 
     def _write_file(self, directory: str, filename: str, content: str | None) -> None:
@@ -36,16 +37,19 @@ class ArtifactManager:
         os.makedirs(step_dir, exist_ok=True)
 
         file_mappings = {
-            "code.py": code,
-            "prompt.txt": prompt,
-            "logs.txt": logs,
-            "review.md": review_text,
-            "reasoning.txt": reasoning,
+            "code": ("code.py", code),
+            "prompt": ("prompt.txt", prompt),
+            "logs": ("logs.txt", logs),
+            "review": ("review.md", review_text),
+            "reasoning": ("reasoning.txt", reasoning),
         }
 
         # save all
-        for filename, content in file_mappings.items():
-            self._write_file(step_dir, filename, content)
+        for artifact_type, (filename, content) in file_mappings.items():
+            if content:
+                file_path = os.path.join(step_dir, filename)
+                self._write_file(step_dir, filename, content)
+                self._record_step_artifact(step_name, artifact_type, file_path)
 
         return step_dir
 
@@ -54,6 +58,7 @@ class ArtifactManager:
         step_dir = os.path.join(self.steps_dir, step_name)
         frames_dir = os.path.join(step_dir, "frames")
         os.makedirs(frames_dir, exist_ok=True)
+        self._record_step_artifact(step_name, "frames_dir", frames_dir)
         return frames_dir
 
     def save_final_summary(
@@ -76,11 +81,13 @@ class ArtifactManager:
         total_reasoning_tokens: int,
         total_answer_tokens: int,
         total_tokens: int,
+        execution_history: list[dict] | None = None,
         video_path: str | None = None,
         args: dict | None = None,
     ) -> None:
         """Save a comprehensive final summary JSON with all key metrics."""
         normalized_video_path = os.path.abspath(video_path) if video_path else None
+        history = execution_history or []
 
         summary = {
             "timestamp": datetime.now().isoformat(),
@@ -98,6 +105,7 @@ class ArtifactManager:
                 "successful_executions": successful_executions,
                 "initial_success": initial_success,
                 "final_success": final_success,
+                "execution_history": history,
             },
             "timing": {
                 "total_workflow_time_seconds": workflow_duration_seconds,
@@ -117,6 +125,9 @@ class ArtifactManager:
             "output": {
                 "video_path": normalized_video_path,
             },
+            "artifacts": {
+                "steps": self.artifact_index,
+            },
         }
 
         summary_file = os.path.join(self.output_dir, "workflow_summary.json")
@@ -124,3 +135,8 @@ class ArtifactManager:
             json.dump(summary, f, indent=2)
 
         self.console.print(f"[bold cyan]Workflow summary saved to: {summary_file}[/bold cyan]")
+
+    def _record_step_artifact(self, step_name: str, artifact_type: str, path: str) -> None:
+        """Record a relative reference to an artifact for inclusion in the summary."""
+        step_entry = self.artifact_index.setdefault(step_name, {})
+        step_entry[artifact_type] = os.path.relpath(path, self.output_dir)

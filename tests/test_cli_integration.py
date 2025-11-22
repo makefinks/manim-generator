@@ -35,7 +35,8 @@ class PromptDrivenScene(Scene):
 class TestCLIIntegration(unittest.TestCase):
     """Runs the CLI in headless and interactive modes to ensure artifacts exist."""
 
-    MODEL = "openrouter/x-ai/grok-code-fast-1"
+    MODEL = "openrouter/meta-llama/llama-3.3-70b-instruct"
+    PROVIDER = "cerebras/fp16"
 
     def setUp(self):
         self.project_root = Path(__file__).resolve().parents[1]
@@ -72,6 +73,8 @@ class TestCLIIntegration(unittest.TestCase):
             "1",
             "--output-dir",
             str(output_dir),
+            "--provider",
+            self.PROVIDER,
         ]
         if headless:
             command.append("--headless")

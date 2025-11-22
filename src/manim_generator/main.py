@@ -105,6 +105,7 @@ def main():
         total_reasoning_tokens=total_reasoning_tokens,
         total_answer_tokens=total_answer_tokens,
         total_tokens=token_usage_tracking["total_tokens"],
+        execution_history=workflow.execution_history,
         video_path=video_path,
         args=config,
     )
