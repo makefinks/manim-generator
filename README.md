@@ -30,6 +30,8 @@ uv sync
 Or using pip directly:
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate # or .venv/scripts/activate on windows
 pip install -e .
 ```
 
@@ -66,7 +68,10 @@ Create a `.env` file from the provided template:
 cp .env.example .env
 ```
 
-Then edit `.env` and add your API keys. Providers available via [openrouter](https://openrouter.ai/) are supported through LiteLLM.
+Then edit `.env` and add your API keys. Providers available via [openrouter](https://openrouter.ai/) are supported through LiteLLM with the prefix openrouter.
+For example `openrouter/openai/gpt-5.1`
+
+If you configure or have an openai/anthropic API key already configured you can use their respective APIs directly: `openai/gpt-5.1` / `anthropic/claude-sonnet-4-5`
 
 ## Usage
 
