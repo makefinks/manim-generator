@@ -62,6 +62,10 @@ def render_and_concat(script_file: str, output_media_dir: str, final_output: str
         content = f.read()
     scene_names = extract_scene_class_names(content)
 
+    if isinstance(scene_names, Exception):
+        logger.error("Failed to parse scene names: %s", scene_names)
+        return None
+
     logger.info("Found scene names in order: %s", scene_names)
 
     # Build the path to the rendered videos.
