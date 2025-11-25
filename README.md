@@ -6,7 +6,18 @@ Automatic video generation using an agentic LLM flow in combination with the [ma
 
 The project experiments with automated Manim video creation. An agent workflow delegates code drafting to a `Code Writer` and validation to a `Code Reviewer`, using LiteLLM for model routing so different models from different providers can be compared on the same task. The flow focuses on reducing render failures and improving visual consistency through iterative feedback and optional vision inputs.
 
-## Current Flow (subject to change)
+## Manim Bench - Leaderboard 📊 
+
+[![Manim Bench](https://img.shields.io/badge/Manim%20Bench-Visit%20Leaderboard-blue?style=for-the-badge)](https://manim-bench.makefinks.dev)
+
+The manim-generator harness now drives **Manim Bench**, a public leaderboard showcasing how latest AI models compare on full Manim video generation.
+
+> [manim-bench.makefinks.dev](https://manim-bench.makefinks.dev) 
+
+If you want to see examples of videos created with this project, or are interested in how different models stack up, visit the link above. Feedback appreciated!
+
+
+## Current Video Generation Process
 
 ![Creation flow](images/flow.png)
 
