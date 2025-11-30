@@ -7,6 +7,19 @@ from rich.console import Console
 from rich.prompt import Prompt
 from rich.table import Table
 
+
+class ConfigurationError(Exception):
+    """Exception raised for configuration-related errors."""
+
+    pass
+
+
+class ConfigurationAbortedError(Exception):
+    """Exception raised when user aborts configuration."""
+
+    pass
+
+
 # Default configuration
 DEFAULT_CONFIG = {
     "manim_model": "openrouter/x-ai/grok-code-fast-1",
@@ -125,7 +138,7 @@ class Config:
             choices=["none", "minimal", "low", "medium", "high"],
             help=(
                 "Reasoning effort level for OpenAI-style models "
-                "(none/minimal/low/medium/high). 'miminimal' specific to GPT-5 and 'none' specific to GPT-5.1"
+                "(none/minimal/low/medium/high). 'minimal' specific to GPT-5 and 'none' specific to GPT-5.1"
             ),
         )
         parser.add_argument(
@@ -176,10 +189,9 @@ class Config:
     def _validate_reasoning_arguments(self, args) -> None:
         """Validate reasoning arguments to ensure only one method is used."""
         if args.reasoning_effort and args.reasoning_max_tokens:
-            self.console.print(
-                "[bold red]Error: Cannot use both --reasoning_effort and --reasoning_max_tokens at the same time.[/bold red]"
+            raise ConfigurationError(
+                "Cannot use both --reasoning_effort and --reasoning_max_tokens at the same time."
             )
-            exit(1)
 
     def _build_config(self, args) -> dict:
         """Build configuration dictionary from parsed arguments."""
@@ -190,13 +202,9 @@ class Config:
                 with open(args.video_data_file) as f:
                     video_data = f.read().strip()
             except FileNotFoundError:
-                self.console.print(
-                    f"[bold red]Error: Video data file '{args.video_data_file}' not found.[/bold red]"
-                )
-                exit(1)
+                raise ConfigurationError(f"Video data file '{args.video_data_file}' not found.")
             except Exception as e:
-                self.console.print(f"[bold red]Error reading video data file: {e}[/bold red]")
-                exit(1)
+                raise ConfigurationError(f"Error reading video data file: {e}")
 
         output_dir = args.output_dir
         short_file_desc = "output"  # Default value
@@ -238,10 +246,7 @@ class Config:
                 )
             )
             if not self._confirm_settings():
-                self.console.print(
-                    "[bold yellow]Configuration not confirmed; aborting run.[/bold yellow]"
-                )
-                exit(0)
+                raise ConfigurationAbortedError("Configuration not confirmed by user.")
 
         # Build config from arguments
         return {

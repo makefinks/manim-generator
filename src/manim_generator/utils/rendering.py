@@ -5,20 +5,34 @@ representative frame from each rendered scene video for potential use with
 vision-capable review models.
 """
 
+from __future__ import annotations
+
 import base64
 import logging
 import os
 import re
 import subprocess
+from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
 from rich.console import Console
 
 from manim_generator.utils.file import save_code_to_file
-from manim_generator.utils.parsing import extract_scene_class_names
+from manim_generator.utils.parsing import SceneParsingError, extract_scene_class_names
+
+if TYPE_CHECKING:
+    from manim_generator.artifacts import ArtifactManager
 
 logger = logging.getLogger(__name__)
+
+# Manim quality folder constants (determined by quality flag)
+QUALITY_FOLDER_LOW = "480p15"  # -ql flag
+QUALITY_FOLDER_HIGH = "1080p60"  # -qh flag
+
+# Frame extraction constants
+BLACK_PIXEL_THRESHOLD = 30  # Grayscale value below which a pixel is considered black
+DEFAULT_MAX_SAMPLE_FRAMES = 30  # Maximum frames to sample in highest_density mode
 
 
 def run_manim_multiscene(
@@ -26,7 +40,7 @@ def run_manim_multiscene(
     console: Console,
     output_media_dir: str = "output",
     step_name: str | None = None,
-    artifact_manager=None,
+    artifact_manager: ArtifactManager | None = None,
     frame_extraction_mode: str = "fixed_count",
     frame_count: int = 3,
     headless: bool = False,
@@ -60,11 +74,11 @@ def run_manim_multiscene(
     # extract scene names
     scene_names = extract_scene_class_names(code)
 
-    # catch syntaxerrors
-    if isinstance(scene_names, Exception):
-        error_msg = f"Code parsing failed: {str(scene_names)}\n\nGenerated code has syntax errors and cannot be executed."
+    # catch parsing errors
+    if isinstance(scene_names, SceneParsingError):
+        error_msg = f"Code parsing failed: {scene_names}\n\nGenerated code has syntax errors and cannot be executed."
         if not headless:
-            console.print(f"[red]Code parsing error: {str(scene_names)}[/red]")
+            console.print(f"[red]Code parsing error: {scene_names}[/red]")
         return False, [], error_msg, []
 
     combined_logs = ""
@@ -139,9 +153,8 @@ def run_manim_multiscene(
     # Determine videos directory for the rendered files
     # According to Manim docs, structure: <media_dir>/videos/<script_basename>/<quality_folder>/<Scene>.mp4
     script_basename = os.path.splitext(os.path.basename(filename))[0]
-    quality_folder = "480p15"  # matches -ql argument
 
-    video_base_path = os.path.join(output_media_dir, "videos", script_basename, quality_folder)
+    video_base_path = os.path.join(output_media_dir, "videos", script_basename, QUALITY_FOLDER_LOW)
 
     # List of tuples: (scene_name, data_url)
     frames: list[tuple[str, str]] = []
@@ -236,19 +249,19 @@ def run_manim_multiscene(
 
 def calculate_scene_success_rate(
     successful_scenes: list[str],
-    scene_names: list[str] | Exception,
-) -> tuple[float, float, int]:
+    scene_names: list[str] | SceneParsingError,
+) -> tuple[float, int, int]:
     """
     Calculate the success rate of scene rendering.
 
     Args:
         successful_scenes: List of scene names that rendered successfully
-        scene_names: List of all scene class names or Exception if parsing failed
+        scene_names: List of all scene class names or SceneParsingError if parsing failed
 
     Returns:
         tuple: (success_rate, scenes_rendered, total_scenes)
     """
-    if isinstance(scene_names, Exception):
+    if isinstance(scene_names, SceneParsingError):
         return 0.0, 0, 0
 
     total_scenes = len(scene_names)
@@ -265,7 +278,7 @@ def extract_frames_from_video(
     video_path: str,
     mode: str = "fixed_count",
     frame_count: int = 3,
-    max_frames: int = 30,
+    max_frames: int = DEFAULT_MAX_SAMPLE_FRAMES,
 ) -> list[np.ndarray] | None:
     """
     Extract frames from a video using different strategies.
@@ -279,6 +292,7 @@ def extract_frames_from_video(
     Returns:
         list of numpy.ndarray: The extracted frames, or None if error
     """
+    cap = None
     try:
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
@@ -307,7 +321,7 @@ def extract_frames_from_video(
                 # Calculate non-black pixel density
                 # Consider a pixel non-black if any channel > threshold
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                non_black_pixels = np.sum(gray > 30)  # Threshold for "black"
+                non_black_pixels = np.sum(gray > BLACK_PIXEL_THRESHOLD)
                 total_pixels = gray.shape[0] * gray.shape[1]
                 density = non_black_pixels / total_pixels
 
@@ -315,7 +329,6 @@ def extract_frames_from_video(
                     best_density = density
                     best_frame = frame.copy()
 
-            cap.release()
             return [best_frame] if best_frame is not None else None
 
         elif mode == "fixed_count":
@@ -332,13 +345,14 @@ def extract_frames_from_video(
                 if ret:
                     extracted_frames.append(frame.copy())
 
-            cap.release()
             return extracted_frames if extracted_frames else None
 
         else:
-            cap.release()
             return None
 
     except Exception as e:
         logger.exception(f"Error extracting frames from {video_path}: {e}")
         return None
+    finally:
+        if cap is not None:
+            cap.release()

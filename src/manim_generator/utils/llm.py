@@ -12,6 +12,11 @@ from litellm.utils import register_model  # type: ignore
 from rich.console import Console
 from rich.prompt import Prompt
 
+# Retry configuration constants
+MAX_RETRIES = 5
+RETRY_BACKOFF_MULTIPLIER = 2
+MAX_RETRY_WAIT_SECONDS = 30
+
 
 @dataclass
 class LiteLLMParams:
@@ -230,7 +235,7 @@ def get_completion_with_retry(
     messages: list[dict],
     temperature: float | None,
     console: Console,
-    max_retries: int = 5,
+    max_retries: int = MAX_RETRIES,
     reasoning: dict | None = None,
     provider: str | None = None,
 ) -> CompletionResult:
@@ -242,7 +247,7 @@ def get_completion_with_retry(
         messages (list[dict]): List of message dictionaries for the conversation.
         temperature (float | None): Temperature parameter. If None, temperature is skipped.
         console (Console): Rich console instance for logging.
-        max_retries (int, optional): Maximum number of retry attempts. Defaults to 5.
+        max_retries (int, optional): Maximum number of retry attempts. Defaults to MAX_RETRIES.
         reasoning (dict | None, optional): Reasoning parameters. Defaults to None.
         provider (str | None, optional): Provider to use. Defaults to None.
 
@@ -301,7 +306,7 @@ def get_completion_with_retry(
 
         except RateLimitError:
             retries += 1
-            wait_time = min(2 * retries, 30)
+            wait_time = min(RETRY_BACKOFF_MULTIPLIER * retries, MAX_RETRY_WAIT_SECONDS)
             console.log(
                 f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
             )
@@ -330,7 +335,7 @@ def get_streaming_completion_with_retry(
     messages: list[dict],
     temperature: float | None,
     console: Console,
-    max_retries: int = 5,
+    max_retries: int = MAX_RETRIES,
     reasoning: dict | None = None,
     provider: str | None = None,
 ) -> Generator[StreamChunk, None, None]:
@@ -342,7 +347,7 @@ def get_streaming_completion_with_retry(
         messages (list[dict]): List of message dictionaries for the conversation.
         temperature (float | None): Temperature parameter. If None, temperature is skipped.
         console (Console): Rich console instance for logging.
-        max_retries (int, optional): Maximum number of retry attempts. Defaults to 5.
+        max_retries (int, optional): Maximum number of retry attempts. Defaults to MAX_RETRIES.
         reasoning (dict, optional): Reasoning parameters. Defaults to None.
         provider (str, optional): Provider to use. Defaults to None.
 
@@ -430,7 +435,7 @@ def get_streaming_completion_with_retry(
             return
         except RateLimitError:
             retries += 1
-            wait_time = min(2 * retries, 30)
+            wait_time = min(RETRY_BACKOFF_MULTIPLIER * retries, MAX_RETRY_WAIT_SECONDS)
             console.log(
                 f"[bold yellow]Rate limited. Waiting for {wait_time} seconds...[/bold yellow]"
             )

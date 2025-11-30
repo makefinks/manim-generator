@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 
+from manim_generator.utils.parsing import SceneParsingError
 from manim_generator.utils.rendering import (
     calculate_scene_success_rate,
     extract_frames_from_video,
@@ -60,8 +61,8 @@ class TestCalculateSceneSuccessRate(unittest.TestCase):
 
     def test_parsing_exception(self):
         """Test success rate when scene parsing failed."""
-        successful_scenes = []
-        scene_names = Exception("Syntax error")
+        successful_scenes: list[str] = []
+        scene_names = SceneParsingError("Syntax error")
 
         success_rate, rendered, total = calculate_scene_success_rate(successful_scenes, scene_names)
 

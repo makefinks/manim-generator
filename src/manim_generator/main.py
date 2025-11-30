@@ -1,9 +1,10 @@
+import sys
 import time
 
 from rich.console import Console
 from rich.panel import Panel
 
-from manim_generator.utils.config import Config
+from manim_generator.utils.config import Config, ConfigurationAbortedError, ConfigurationError
 from manim_generator.utils.file import load_video_data
 from manim_generator.utils.usage import (
     display_usage_summary,
@@ -18,7 +19,14 @@ def main():
     console = Console()
 
     config_manager = Config()
-    config, video_data_arg, video_data_file = config_manager.parse_arguments()
+    try:
+        config, video_data_arg, video_data_file = config_manager.parse_arguments()
+    except ConfigurationError as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        sys.exit(1)
+    except ConfigurationAbortedError as e:
+        console.print(f"[bold yellow]{e}[/bold yellow]")
+        sys.exit(0)
 
     headless = config.get("headless", False)
 
