@@ -135,10 +135,10 @@ class Config:
         parser.add_argument(
             "--reasoning-effort",
             type=str,
-            choices=["none", "minimal", "low", "medium", "high"],
+            choices=["none", "minimal", "low", "medium", "high", "xhigh"],
             help=(
                 "Reasoning effort level for OpenAI-style models "
-                "(none/minimal/low/medium/high). 'minimal' specific to GPT-5 and 'none' specific to GPT-5.1"
+                "(none/minimal/low/medium/high/xhigh). Note that some models do not support all of the listed parameters."
             ),
         )
         parser.add_argument(
@@ -147,10 +147,10 @@ class Config:
             help="Maximum tokens for reasoning (Anthropic-style)",
         )
         parser.add_argument(
-            "--reasoning-exclude",
+            "--hide-reasoning",
             action="store_true",
             default=False,
-            help="Exclude reasoning tokens from response (model still uses reasoning internally)",
+            help="Hide reasoning tokens from the response output (model still uses reasoning internally).",
         )
         parser.add_argument(
             "--success-threshold",
@@ -231,7 +231,7 @@ class Config:
             reasoning_config["effort"] = args.reasoning_effort
         if args.reasoning_max_tokens:
             reasoning_config["max_tokens"] = args.reasoning_max_tokens
-        if args.reasoning_exclude:
+        if args.hide_reasoning:
             reasoning_config["exclude"] = True
 
         if not args.headless:
