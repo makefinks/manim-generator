@@ -91,7 +91,7 @@ class ManimWorkflow:
 
         main_messages = [
             {
-                "role": "system",
+                "role": "user",
                 "content": format_prompt("init_prompt", {"video_data": video_data}),
             }
         ]

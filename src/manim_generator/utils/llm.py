@@ -45,7 +45,10 @@ class LiteLLMParams:
             else:
                 args["reasoning"] = self.reasoning
         if self.provider is not None:
-            args["provider"] = {"order": [self.provider]}
+            provider_routing = {"order": [self.provider]}
+            # provider selection for openrouter has to be passed with extra body
+            if self.model.startswith("openrouter/"):
+                args["extra_body"] = {"provider": provider_routing}
         return args
 
     def _requires_openai_reasoning_effort(self) -> bool:

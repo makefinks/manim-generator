@@ -32,7 +32,7 @@ DEFAULT_CONFIG = {
     "output_dir": None,
     "frame_extraction_mode": "highest_density",
     "frame_count": 3,
-    "scene_timeout": 120,
+    "scene_timeout": 400,
 }
 
 
