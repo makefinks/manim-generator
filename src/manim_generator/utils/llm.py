@@ -163,6 +163,45 @@ def _build_usage_info(model: str, usage: Any, cost: float, llm_time: float) -> d
     return usage_info
 
 
+def _extract_provider_usage_cost(usage: Any) -> float | None:
+    """Extract provider-reported USD cost from a usage payload, if present."""
+    if usage is None:
+        return None
+
+    if isinstance(usage, dict):
+        raw_cost = usage.get("cost")
+    else:
+        raw_cost = getattr(usage, "cost", None)
+
+    if raw_cost is None:
+        return None
+
+    try:
+        cost = float(raw_cost)
+    except (TypeError, ValueError):
+        return None
+
+    return cost if cost >= 0 else None
+
+
+def _calculate_cost(model: str, response_obj: Any, usage: Any) -> float:
+    """
+    Calculate request cost with OpenRouter-aware precedence.
+
+    For `openrouter/*` models, prefer provider-reported `usage.cost` when
+    available. Otherwise, fall back to LiteLLM's local cost calculator.
+    """
+    if model.startswith("openrouter/"):
+        provider_cost = _extract_provider_usage_cost(usage)
+        if provider_cost is not None:
+            return provider_cost
+
+    try:
+        return completion_cost(response_obj)
+    except Exception:
+        return 0.0
+
+
 def check_and_register_models(models: list[str], console: Console, headless: bool = False) -> None:
     """
     Checks if models are registered in the LiteLLM cost map.
@@ -174,6 +213,11 @@ def check_and_register_models(models: list[str], console: Console, headless: boo
         headless (bool): If True, skip interactive prompts and auto-skip registration
     """
     for model in models:
+        # OpenRouter responses include direct usage.cost, so local pricing
+        # registration is unnecessary for these models.
+        if model.startswith("openrouter/"):
+            continue
+
         if model not in model_cost:
             if headless:
                 # In headless mode, silently skip registration
@@ -281,16 +325,13 @@ def get_completion_with_retry(
 
             response_content = response["choices"][0]["message"]["content"]  # type: ignore
 
-            try:
-                # calculates cost for models - only fails if model not registered and user skipped manual registration
-                cost = completion_cost(response)
-            except Exception:
-                cost = 0.0
+            usage_payload = response.usage if hasattr(response, "usage") else None
+            cost = _calculate_cost(model, response, usage_payload)
 
             # Extract usage information
             usage_info = _build_usage_info(
                 model=model,
-                usage=response.usage if hasattr(response, "usage") else None,
+                usage=usage_payload,
                 cost=cost,
                 llm_time=llm_time,
             )
@@ -404,10 +445,7 @@ def get_streaming_completion_with_retry(
                         full_reasoning += reasoning_token
 
                     if hasattr(chunk, "usage") and chunk.usage:  # type: ignore
-                        try:
-                            cost = completion_cost(chunk)
-                        except Exception:
-                            cost = 0.0
+                        cost = _calculate_cost(model, chunk, chunk.usage)  # type: ignore
 
                         stream_end = time.time()
                         final_usage = _build_usage_info(

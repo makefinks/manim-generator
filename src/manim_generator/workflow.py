@@ -11,6 +11,7 @@ from manim_generator.console import (
     HeadlessProgressManager,
     get_response_with_status,
     print_code_with_syntax,
+    print_request_summary,
 )
 from manim_generator.utils.file import save_code_to_file
 from manim_generator.utils.llm import check_and_register_models
@@ -113,13 +114,13 @@ class ManimWorkflow:
         )
 
         if not self.headless:
-            self.console.clear()
             self._display_reasoning_panel(reasoning_content)
 
         code = parse_code_block(response)
 
         if not self.headless:
             print_code_with_syntax(code, self.console, "Generated Initial Manim Code")
+        print_request_summary(self.console, usage_info, headless=self.headless)
 
         prompt_content = format_prompt("init_prompt", {"video_data": video_data})
         self.artifact_manager.save_step_artifacts(
@@ -246,7 +247,7 @@ class ManimWorkflow:
             else:
                 self._update_status(f"Review Cycle {cycle + 1}", rule_style="blue")
 
-            review, review_reasoning = self._generate_review(
+            review, review_reasoning, review_usage = self._generate_review(
                 current_code,
                 combined_logs,
                 last_frames,
@@ -266,6 +267,7 @@ class ManimWorkflow:
                         border_style="blue",
                     )
                 )
+            print_request_summary(self.console, review_usage, headless=self.headless)
 
             current_code = self._generate_code_revision(
                 current_code, review, video_data, cycle + 1, last_frames
@@ -289,7 +291,7 @@ class ManimWorkflow:
         previous_reviews: list,
         cycle_num: int,
         successful_scenes: list[str],
-    ) -> tuple[str, str | None]:
+    ) -> tuple[str, str | None, dict[str, object]]:
         """Generate a review of the current code."""
         if self.headless and self.headless_manager:
             self.headless_manager.update(f"Review Cycle {cycle_num}")
@@ -377,8 +379,7 @@ class ManimWorkflow:
             review_text=response,
             reasoning=reasoning_content,
         )
-
-        return response, reasoning_content
+        return response, reasoning_content, usage_info
 
     def _generate_code_revision(
         self,
@@ -428,6 +429,7 @@ class ManimWorkflow:
 
         if not self.headless:
             print_code_with_syntax(revised_code, self.console, f"Revised Code - Cycle {cycle_num}")
+        print_request_summary(self.console, usage_info, headless=self.headless)
 
         self.artifact_manager.save_step_artifacts(
             f"revision_{cycle_num}",

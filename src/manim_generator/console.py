@@ -1,5 +1,3 @@
-import time
-
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
@@ -94,6 +92,31 @@ class HeadlessProgressManager:
             self.progress_started = False
 
 
+def print_request_summary(
+    console: Console,
+    usage_info: dict[str, object],
+    headless: bool = False,
+    elapsed_time: float | None = None,
+) -> None:
+    """Print token and cost summary for a completed request."""
+    request_duration = (
+        elapsed_time if elapsed_time is not None else float(usage_info.get("llm_time", 0.0) or 0.0)
+    )
+    reasoning_tokens = usage_info.get("reasoning_tokens", 0)
+    answer_tokens = usage_info.get("answer_tokens", usage_info.get("completion_tokens", 0))
+    summary_line = (
+        f"Request completed in {request_duration:.2f} seconds | "
+        f"Input Tokens: {usage_info.get('prompt_tokens', 0)} | "
+        f"Output Tokens: {usage_info.get('completion_tokens', 0)} "
+        f"(reasoning: {reasoning_tokens}, answer: {answer_tokens}) | "
+        f"Cost: ${usage_info.get('cost', 0):.6f}"
+    )
+    if headless:
+        console.print(summary_line)
+    else:
+        console.print(f"[dim italic]{summary_line}[/dim italic]")
+
+
 def get_response_with_status(
     model: str,
     messages: list,
@@ -110,7 +133,6 @@ def get_response_with_status(
     Returns:
         tuple[str, dict[str, object], str | None]: Response text, usage information, and optional reasoning content
     """
-    start_time = time.time()
     reasoning_content = None
 
     if streaming and not headless:
@@ -181,20 +203,6 @@ def get_response_with_status(
             usage_info = result.usage
             reasoning_content = result.reasoning
             progress.update(task, completed=True)
-
-    elapsed_time = time.time() - start_time
-    if not headless:
-        reasoning_tokens = usage_info.get("reasoning_tokens", 0)
-        answer_tokens = usage_info.get("answer_tokens", usage_info.get("completion_tokens", 0))
-        console.print(
-            "[dim italic]"
-            f"Request completed in {elapsed_time:.2f} seconds | "
-            f"Input Tokens: {usage_info.get('prompt_tokens', 0)} | "
-            f"Output Tokens: {usage_info.get('completion_tokens', 0)} "
-            f"(reasoning: {reasoning_tokens}, answer: {answer_tokens}) | "
-            f"Cost: ${usage_info.get('cost', 0):.6f}"
-            "[/dim italic]"
-        )
 
     return response_text, usage_info, reasoning_content
 

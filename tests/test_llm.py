@@ -9,6 +9,7 @@ from rich.console import Console
 from manim_generator.utils.llm import (
     LiteLLMParams,
     _build_usage_info,
+    _extract_provider_usage_cost,
     check_and_register_models,
     get_completion_with_retry,
     get_streaming_completion_with_retry,
@@ -79,21 +80,21 @@ class TestLiteLLMParams(unittest.TestCase):
         self.assertEqual(args["reasoning"], reasoning)
         self.assertNotIn("reasoning_effort", args)
 
-    def test_with_provider(self):
-        """Test building arguments with provider."""
+    def test_with_provider_openrouter_model(self):
+        """OpenRouter provider routing should be passed via extra_body."""
         params = LiteLLMParams(
-            model="gpt-4",
+            model="openrouter/meta-llama/llama-3.3-70b-instruct",
             messages=[],
             temperature=0.5,
             stream=False,
             reasoning=None,
-            provider="openrouter",
+            provider="cerebras/fp16",
         )
 
         args = params.to_kwargs()
 
-        self.assertIn("provider", args)
-        self.assertEqual(args["provider"], {"order": ["openrouter"]})
+        self.assertIn("extra_body", args)
+        self.assertEqual(args["extra_body"], {"provider": {"order": ["cerebras/fp16"]}})
 
 
 class TestCheckAndRegisterModels(unittest.TestCase):
@@ -126,6 +127,17 @@ class TestCheckAndRegisterModels(unittest.TestCase):
         console = Console()
         # Should not prompt since model is already registered
         check_and_register_models(["gpt-4"], console, headless=False)
+
+    @patch("manim_generator.utils.llm.Prompt.ask")
+    @patch("manim_generator.utils.llm.register_model")
+    def test_skip_openrouter_model_registration(self, mock_register, mock_ask):
+        """OpenRouter models should skip local pricing registration prompts."""
+        console = Console()
+
+        check_and_register_models(["openrouter/meta-llama/llama-3.3-70b-instruct"], console)
+
+        mock_ask.assert_not_called()
+        mock_register.assert_not_called()
 
 
 class TestGetCompletionWithRetry(unittest.TestCase):
@@ -186,6 +198,31 @@ class TestGetCompletionWithRetry(unittest.TestCase):
 
         self.assertEqual(result.reasoning, "Test reasoning")
 
+    @patch("manim_generator.utils.llm.completion_cost")
+    @patch("manim_generator.utils.llm.completion")
+    def test_openrouter_prefers_provider_usage_cost(self, mock_completion, mock_cost):
+        """OpenRouter should use provider-reported usage.cost when present."""
+        mock_response = MagicMock()
+        mock_response.__getitem__ = MagicMock(
+            side_effect=lambda key: {"choices": [{"message": {"content": "Test response"}}]}[key]
+        )
+        mock_response.usage.prompt_tokens = 100
+        mock_response.usage.completion_tokens = 50
+        mock_response.usage.total_tokens = 150
+        mock_response.usage.cost = 0.0042
+        mock_completion.return_value = mock_response
+
+        console = Console()
+        result = get_completion_with_retry(
+            model="openrouter/meta-llama/llama-3.3-70b-instruct",
+            messages=[{"role": "user", "content": "Test"}],
+            temperature=0.5,
+            console=console,
+        )
+
+        self.assertEqual(result.usage["cost"], 0.0042)
+        mock_cost.assert_not_called()
+
 
 class TestGetStreamingCompletionWithRetry(unittest.TestCase):
     """Test cases for get_streaming_completion_with_retry function."""
@@ -239,6 +276,18 @@ class TestBuildUsageInfo(unittest.TestCase):
         self.assertEqual(usage_info["total_tokens"], 0)
         self.assertEqual(usage_info["reasoning_tokens"], 0)
         self.assertEqual(usage_info["answer_tokens"], 0)
+
+
+class TestProviderUsageCost(unittest.TestCase):
+    """Tests for provider-reported usage cost extraction."""
+
+    def test_extract_provider_usage_cost_from_dict(self):
+        usage = {"cost": "0.00123"}
+        self.assertEqual(_extract_provider_usage_cost(usage), 0.00123)
+
+    def test_extract_provider_usage_cost_missing(self):
+        usage = {"prompt_tokens": 10}
+        self.assertIsNone(_extract_provider_usage_cost(usage))
 
 
 if __name__ == "__main__":
