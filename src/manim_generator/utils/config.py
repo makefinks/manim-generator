@@ -135,10 +135,10 @@ class Config:
         parser.add_argument(
             "--reasoning-effort",
             type=str,
-            choices=["none", "minimal", "low", "medium", "high", "xhigh"],
+            choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
             help=(
-                "Reasoning effort level for OpenAI-style models "
-                "(none/minimal/low/medium/high/xhigh). Note that some models do not support all of the listed parameters."
+                "Reasoning effort level for supported models/providers "
+                "(none/minimal/low/medium/high/xhigh/max). Note that some models do not support all of the listed parameters."
             ),
         )
         parser.add_argument(
@@ -190,7 +190,7 @@ class Config:
         """Validate reasoning arguments to ensure only one method is used."""
         if args.reasoning_effort and args.reasoning_max_tokens:
             raise ConfigurationError(
-                "Cannot use both --reasoning_effort and --reasoning_max_tokens at the same time."
+                "Cannot use both --reasoning-effort and --reasoning-max-tokens at the same time."
             )
 
     def _build_config(self, args) -> dict:

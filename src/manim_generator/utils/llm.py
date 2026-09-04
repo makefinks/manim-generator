@@ -38,29 +38,33 @@ class LiteLLMParams:
         }
         if self.temperature is not None:
             args["temperature"] = self.temperature
+        extra_body: dict[str, Any] = {}
         if self.reasoning is not None:
-            if self._requires_openai_reasoning_effort():
-                # OpenAI endpoints expect reasoning_effort instead of reasoning dict
-                args["reasoning_effort"] = self.reasoning["effort"]
-            else:
-                args["reasoning"] = self.reasoning
-        if self.provider is not None:
-            provider_routing = {"order": [self.provider]}
-            # provider selection for openrouter has to be passed with extra body
             if self.model.startswith("openrouter/"):
-                args["extra_body"] = {"provider": provider_routing}
+                # OpenRouter's native reasoning object preserves effort, token-budget,
+                # and response-exclusion settings as one unified configuration.
+                extra_body["reasoning"] = self.reasoning
+            else:
+                # Let LiteLLM translate its normalized parameters for direct providers.
+                # It maps reasoning_effort across OpenAI, Anthropic, Gemini, and others.
+                if "effort" in self.reasoning:
+                    args["reasoning_effort"] = self.reasoning["effort"]
+                if "max_tokens" in self.reasoning:
+                    args["thinking"] = {
+                        "type": "enabled",
+                        "budget_tokens": self.reasoning["max_tokens"],
+                    }
+                    # Some LiteLLM model metadata lags behind its provider
+                    # translators. Do not let global drop_params silently remove
+                    # an explicitly requested, standardized thinking budget.
+                    args["allowed_openai_params"] = ["thinking"]
+
+        if self.provider is not None and self.model.startswith("openrouter/"):
+            # OpenRouter provider routing is part of its request body.
+            extra_body["provider"] = {"order": [self.provider]}
+        if extra_body:
+            args["extra_body"] = extra_body
         return args
-
-    def _requires_openai_reasoning_effort(self) -> bool:
-        """
-        Detects when to send `reasoning_effort` instead of `reasoning`.
-
-        OpenAI's direct API uses `reasoning_effort`; routers typically accept
-        the full reasoning payload.
-        """
-        if self.provider == "openai":
-            return True
-        return self.model.startswith(("openai/", "gpt-", "o1-", "o3-"))
 
 
 @dataclass

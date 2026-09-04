@@ -63,10 +63,43 @@ class TestLiteLLMParams(unittest.TestCase):
         self.assertNotIn("reasoning", args)
 
     def test_with_reasoning_non_openai(self):
-        """Test building arguments with non-OpenAI reasoning."""
-        reasoning = {"effort": "medium"}
+        """LiteLLM should translate normalized effort for direct providers."""
         params = LiteLLMParams(
-            model="anthropic/claude-3-opus",
+            model="anthropic/claude-opus-4-6",
+            messages=[],
+            temperature=0.5,
+            stream=False,
+            reasoning={"effort": "medium"},
+            provider=None,
+        )
+
+        args = params.to_kwargs()
+
+        self.assertEqual(args["reasoning_effort"], "medium")
+        self.assertNotIn("reasoning", args)
+
+    def test_with_reasoning_budget_non_openrouter(self):
+        """LiteLLM's thinking parameter should carry direct-provider token budgets."""
+        params = LiteLLMParams(
+            model="anthropic/claude-sonnet-4",
+            messages=[],
+            temperature=0.5,
+            stream=False,
+            reasoning={"max_tokens": 2000},
+            provider=None,
+        )
+
+        args = params.to_kwargs()
+
+        self.assertEqual(args["thinking"], {"type": "enabled", "budget_tokens": 2000})
+        self.assertEqual(args["allowed_openai_params"], ["thinking"])
+        self.assertNotIn("reasoning", args)
+
+    def test_with_reasoning_openrouter(self):
+        """OpenRouter should receive its native unified reasoning object."""
+        reasoning = {"effort": "high", "exclude": True}
+        params = LiteLLMParams(
+            model="openrouter/openai/gpt-5",
             messages=[],
             temperature=0.5,
             stream=False,
@@ -76,25 +109,31 @@ class TestLiteLLMParams(unittest.TestCase):
 
         args = params.to_kwargs()
 
-        self.assertIn("reasoning", args)
-        self.assertEqual(args["reasoning"], reasoning)
+        self.assertEqual(args["extra_body"], {"reasoning": reasoning})
         self.assertNotIn("reasoning_effort", args)
+        self.assertNotIn("reasoning", args)
 
     def test_with_provider_openrouter_model(self):
-        """OpenRouter provider routing should be passed via extra_body."""
+        """OpenRouter routing and reasoning should share extra_body."""
+        reasoning = {"max_tokens": 2000}
         params = LiteLLMParams(
             model="openrouter/meta-llama/llama-3.3-70b-instruct",
             messages=[],
             temperature=0.5,
             stream=False,
-            reasoning=None,
+            reasoning=reasoning,
             provider="cerebras/fp16",
         )
 
         args = params.to_kwargs()
 
-        self.assertIn("extra_body", args)
-        self.assertEqual(args["extra_body"], {"provider": {"order": ["cerebras/fp16"]}})
+        self.assertEqual(
+            args["extra_body"],
+            {
+                "reasoning": reasoning,
+                "provider": {"order": ["cerebras/fp16"]},
+            },
+        )
 
 
 class TestCheckAndRegisterModels(unittest.TestCase):
